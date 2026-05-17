@@ -15,12 +15,12 @@
 - `mvn test` — Ejecutar tests
 - `mvn clean package -DskipTests` — Generar JAR para deploy
 
-## Deploy en Render.com
+## Deploy en Render.com (vía Docker)
 1. Crear cluster gratis en MongoDB Atlas
-2. Obtener connection string y ponerlo como `MONGODB_URI` en Render
-3. Conectar repo de GitHub a Render
-4. Render build command: `mvn clean package -DskipTests`
-5. Render start command: `java -jar target/*.jar --server.port=$PORT`
+2. Obtener connection string
+3. En Render: New Web Service -> conectar GitHub repo
+4. **Runtime: seleccionar "Docker"** (Render detecta Dockerfile)
+5. Añadir variable de entorno: `MONGODB_URI` = connection string de Atlas
 
 ## Variables de entorno
 - `MONGODB_URI` — URI de MongoDB (local por defecto)
