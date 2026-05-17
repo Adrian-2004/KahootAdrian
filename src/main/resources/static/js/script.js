@@ -4,13 +4,10 @@ let currentPlayerId = null;
 let currentPlayerName = null;
 let currentQuestions = [];
 let currentQuestionIndex = 0;
-let rankingSource = null;
 
 const API_BASE = '';
-
-function getCurrentGameId() {
-    return currentGameId;
-}
+let liveRankingInterval = null;
+let lastAdminGameId = null;
 
 // --- Navigation ---
 function showScreen(screenId) {
@@ -19,12 +16,12 @@ function showScreen(screenId) {
 }
 
 function showHome() {
+    stopLiveRanking();
     currentGameId = null;
     currentPlayerId = null;
     currentPlayerName = null;
     currentQuestions = [];
     currentQuestionIndex = 0;
-    rankingSource = null;
     showScreen('screen-home');
 }
 
@@ -38,36 +35,40 @@ function showJoinGame() {
     showScreen('screen-join');
 }
 
-async function showRanking(gameId, source) {
-    rankingSource = source;
-    const tbody = document.getElementById('ranking-body');
-    const empty = document.getElementById('ranking-empty');
-    tbody.innerHTML = '';
-    empty.classList.add('hidden');
-    showScreen('screen-ranking');
-
-    try {
-        const res = await fetch(API_BASE + '/api/games/' + gameId + '/ranking');
-        if (!res.ok) throw new Error('Error al obtener ranking');
-        const ranking = await res.json();
-
-        if (ranking.length === 0) {
-            empty.classList.remove('hidden');
-            return;
-        }
-
-        ranking.forEach((entry, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = '<td>' + (index + 1) + '</td>' +
-                '<td>' + escapeHtml(entry.playerName) + '</td>' +
-                '<td>' + entry.score + '</td>';
-            tbody.appendChild(tr);
-        });
-    } catch (err) {
-        empty.textContent = 'Error al cargar la clasificacion';
-        empty.classList.remove('hidden');
+function showRankingAdmin() {
+    if (lastAdminGameId) {
+        showRanking(lastAdminGameId);
+    } else {
+        alert('Primero crea un juego');
     }
 }
+
+// --- Dynamic Options ---
+function updateOptionFields() {
+    const count = parseInt(document.getElementById('options-count').value);
+    const grid = document.getElementById('options-grid');
+    const correctSelect = document.getElementById('correct-option');
+
+    grid.innerHTML = '';
+    correctSelect.innerHTML = '';
+
+    for (let i = 0; i < count; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'option-input';
+        input.placeholder = 'Opcion ' + (i + 1);
+        input.dataset.index = i;
+        input.required = true;
+        grid.appendChild(input);
+
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = 'Opcion ' + (i + 1);
+        correctSelect.appendChild(option);
+    }
+}
+
+document.getElementById('options-count').addEventListener('change', updateOptionFields);
 
 // --- Create Game ---
 document.getElementById('create-form').addEventListener('submit', async function (e) {
@@ -85,11 +86,13 @@ document.getElementById('create-form').addEventListener('submit', async function
         if (!res.ok) throw new Error('Error al crear el juego');
         const game = await res.json();
 
+        lastAdminGameId = game.id;
         currentGameId = game.id;
         document.getElementById('display-join-code').textContent = game.joinCode;
         document.getElementById('display-game-id').textContent = 'ID: ' + game.id;
         document.getElementById('questions-list').innerHTML = '<p class="empty-state">No hay preguntas aun. Agrega la primera.</p>';
         document.getElementById('question-form').reset();
+        updateOptionFields();
         showScreen('screen-admin');
     } catch (err) {
         alert('Error al crear el juego: ' + err.message);
@@ -114,8 +117,8 @@ document.getElementById('question-form').addEventListener('submit', async functi
         options.push(val);
     });
 
-    if (!valid) {
-        alert('Todas las opciones deben tener texto');
+    if (!valid || options.length < 2) {
+        alert('Debe haber al menos 2 opciones con texto');
         return;
     }
 
@@ -137,6 +140,7 @@ document.getElementById('question-form').addEventListener('submit', async functi
 
         renderQuestions(game.questions);
         document.getElementById('question-form').reset();
+        updateOptionFields();
     } catch (err) {
         alert('Error al agregar pregunta: ' + err.message);
     }
@@ -151,8 +155,11 @@ function renderQuestions(questions) {
 
     let html = '';
     questions.forEach(function (q, idx) {
+        const optionsSummary = q.options ? q.options.join(', ') : '';
         html += '<div class="question-item">' +
-            '<span class="q-text">' + (idx + 1) + '. ' + escapeHtml(q.text) + '</span>' +
+            '<div class="q-text">' + (idx + 1) + '. ' + escapeHtml(q.text) +
+            '<span class="q-options-preview"> [' + escapeHtml(optionsSummary) + ']</span>' +
+            '</div>' +
             '<div class="q-actions">' +
             '<button onclick="deleteQuestion(\'' + q.id + '\')">Eliminar</button>' +
             '</div>' +
@@ -231,7 +238,7 @@ function startPlaying() {
 
 function showQuestion() {
     if (currentQuestionIndex >= currentQuestions.length) {
-        showRanking(currentGameId, 'player');
+        showRanking(currentGameId);
         return;
     }
 
@@ -241,7 +248,7 @@ function showQuestion() {
     document.getElementById('question-counter').textContent = 'Pregunta ' + (currentQuestionIndex + 1) + ' / ' + total;
     document.getElementById('current-question').textContent = q.text;
 
-    const progress = ((currentQuestionIndex) / total) * 100;
+    const progress = (currentQuestionIndex / total) * 100;
     document.getElementById('progress-bar').style.width = progress + '%';
 
     const container = document.getElementById('options-container');
@@ -285,18 +292,15 @@ async function submitAnswer(questionId, selectedIndex) {
 
         const answer = await res.json();
         const q = currentQuestions[currentQuestionIndex];
-        const correctIdx = q.correctOptionIndex;
 
         // Show correct/incorrect styling
         btns.forEach(function (b, idx) {
-            if (idx === correctIdx) {
-                b.classList.add('reveal');
-            }
-            if (idx === selectedIndex && idx !== correctIdx) {
-                b.classList.add('incorrect');
-            }
-            if (idx === correctIdx && idx === selectedIndex) {
+            if (idx === selectedIndex && answer.correct) {
                 b.classList.add('correct');
+            } else if (idx === selectedIndex && !answer.correct) {
+                b.classList.add('incorrect');
+            } else if (answer.correctOptionText && q.options[idx] === answer.correctOptionText) {
+                b.classList.add('reveal');
             }
         });
 
@@ -305,7 +309,7 @@ async function submitAnswer(questionId, selectedIndex) {
             feedback.textContent = 'Correcto!';
             feedback.className = 'feedback correct';
         } else {
-            const correctText = q.options[correctIdx];
+            const correctText = answer.correctOptionText || '?';
             feedback.textContent = 'Incorrecto. La respuesta correcta era: ' + correctText;
             feedback.className = 'feedback incorrect';
         }
@@ -321,9 +325,130 @@ async function submitAnswer(questionId, selectedIndex) {
     }
 }
 
+// --- Ranking ---
+async function showRanking(gameId) {
+    const tbody = document.getElementById('ranking-body');
+    const empty = document.getElementById('ranking-empty');
+    tbody.innerHTML = '';
+    empty.classList.add('hidden');
+    showScreen('screen-ranking');
+
+    try {
+        const res = await fetch(API_BASE + '/api/games/' + gameId + '/ranking');
+        if (!res.ok) throw new Error('Error al obtener ranking');
+        const ranking = await res.json();
+
+        if (ranking.length === 0) {
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        ranking.forEach((entry, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + (index + 1) + '</td>' +
+                '<td>' + escapeHtml(entry.playerName) + '</td>' +
+                '<td>' + entry.score + '</td>';
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        empty.textContent = 'Error al cargar la clasificacion';
+        empty.classList.remove('hidden');
+    }
+}
+
+// --- Live Ranking ---
+function showLiveRankingForm() {
+    stopLiveRanking();
+    document.getElementById('live-ranking-form').reset();
+    document.getElementById('live-ranking-content').classList.add('hidden');
+    document.getElementById('live-ranking-body').innerHTML = '';
+    document.getElementById('live-ranking-empty').classList.add('hidden');
+    document.getElementById('live-game-info').textContent = '';
+    document.getElementById('live-join-code').value = '';
+    showScreen('screen-live-ranking');
+}
+
+document.getElementById('live-ranking-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const joinCode = document.getElementById('live-join-code').value.trim().toUpperCase();
+    if (!joinCode) return;
+
+    await startLiveRanking(joinCode);
+});
+
+async function startLiveRanking(joinCode) {
+    stopLiveRanking();
+
+    // Resolve join code to game ID
+    try {
+        const gameRes = await fetch(API_BASE + '/api/games');
+        if (!gameRes.ok) throw new Error('Error al obtener juegos');
+        const games = await gameRes.json();
+        const game = games.find(g => g.joinCode === joinCode);
+        if (!game) {
+            alert('Codigo de union invalido');
+            return;
+        }
+
+        const gameId = game.id;
+        document.getElementById('live-game-info').textContent = 'Juego: ' + game.name + ' (Codigo: ' + game.joinCode + ')';
+        document.getElementById('live-ranking-content').classList.remove('hidden');
+
+        // Initial load
+        await fetchAndRenderLiveRanking(gameId);
+
+        // Auto-refresh every 3 seconds
+        liveRankingInterval = setInterval(function () {
+            fetchAndRenderLiveRanking(gameId);
+        }, 3000);
+
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+async function fetchAndRenderLiveRanking(gameId) {
+    const tbody = document.getElementById('live-ranking-body');
+    const empty = document.getElementById('live-ranking-empty');
+
+    try {
+        const res = await fetch(API_BASE + '/api/games/' + gameId + '/ranking');
+        if (!res.ok) return;
+        const ranking = await res.json();
+
+        tbody.innerHTML = '';
+        empty.classList.add('hidden');
+
+        if (ranking.length === 0) {
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        ranking.forEach(function (entry, index) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + (index + 1) + '</td>' +
+                '<td>' + escapeHtml(entry.playerName) + '</td>' +
+                '<td>' + entry.score + '</td>';
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        // Silently fail on refresh errors
+    }
+}
+
+function stopLiveRanking() {
+    if (liveRankingInterval) {
+        clearInterval(liveRankingInterval);
+        liveRankingInterval = null;
+    }
+}
+
 // --- Utilities ---
 function escapeHtml(str) {
     var div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
 }
+
+// Init
+updateOptionFields();

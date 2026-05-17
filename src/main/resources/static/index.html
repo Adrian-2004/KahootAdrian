@@ -17,6 +17,7 @@
                 <div class="home-buttons">
                     <button class="btn btn-primary" onclick="showCreateGame()">Crear Juego</button>
                     <button class="btn btn-secondary" onclick="showJoinGame()">Unirse a Juego</button>
+                    <button class="btn btn-outline" onclick="showLiveRankingForm()">Ranking en Vivo</button>
                 </div>
             </div>
         </div>
@@ -52,22 +53,22 @@
                         <input type="text" id="question-text" placeholder="Escribe la pregunta" required>
                     </div>
                     <div class="form-group">
+                        <label for="options-count">Numero de opciones</label>
+                        <select id="options-count" class="select-input">
+                            <option value="2">2 opciones</option>
+                            <option value="3">3 opciones</option>
+                            <option value="4" selected>4 opciones</option>
+                            <option value="5">5 opciones</option>
+                            <option value="6">6 opciones</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Opciones de respuesta</label>
-                        <div class="options-grid">
-                            <input type="text" class="option-input" placeholder="Opcion 1" data-index="0">
-                            <input type="text" class="option-input" placeholder="Opcion 2" data-index="1">
-                            <input type="text" class="option-input" placeholder="Opcion 3" data-index="2">
-                            <input type="text" class="option-input" placeholder="Opcion 4" data-index="3">
-                        </div>
+                        <div class="options-grid" id="options-grid"></div>
                     </div>
                     <div class="form-group">
                         <label for="correct-option">Opcion correcta</label>
-                        <select id="correct-option" class="select-input">
-                            <option value="0">Opcion 1</option>
-                            <option value="1">Opcion 2</option>
-                            <option value="2">Opcion 3</option>
-                            <option value="3">Opcion 4</option>
-                        </select>
+                        <select id="correct-option" class="select-input"></select>
                     </div>
                     <button type="submit" class="btn btn-primary">Anadir Pregunta</button>
                 </form>
@@ -77,7 +78,8 @@
                     <p class="empty-state">No hay preguntas aun. Agrega la primera.</p>
                 </div>
 
-                <button class="btn btn-secondary" onclick="showRanking(getCurrentGameId(), 'admin')">Ver Ranking</button>
+                <button class="btn btn-secondary" onclick="showRankingAdmin()">Ver Ranking</button>
+                <button class="btn btn-outline" onclick="showLiveRankingForm()">Ranking en Vivo</button>
             </div>
         </div>
 
@@ -129,6 +131,36 @@
                 </table>
                 <p id="ranking-empty" class="empty-state hidden">Aun no hay respuestas.</p>
                 <button class="btn btn-back" onclick="showHome()">Volver al inicio</button>
+            </div>
+        </div>
+
+        <!-- Screen: Live Ranking -->
+        <div id="screen-live-ranking" class="screen">
+            <div class="container">
+                <h2>Ranking en Vivo</h2>
+                <form id="live-ranking-form">
+                    <div class="form-group">
+                        <label for="live-join-code">Codigo de union</label>
+                        <input type="text" id="live-join-code" placeholder="Ej: ABC123" maxlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Ver Ranking</button>
+                </form>
+                <div id="live-ranking-content" class="hidden">
+                    <p class="live-info">Actualizando cada 3 segundos...</p>
+                    <div class="live-game-info" id="live-game-info"></div>
+                    <table id="live-ranking-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Jugador</th>
+                                <th>Puntos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="live-ranking-body"></tbody>
+                    </table>
+                    <p id="live-ranking-empty" class="empty-state hidden">Aun no hay respuestas.</p>
+                </div>
+                <button class="btn btn-back" onclick="stopLiveRanking(); showHome();">Volver al inicio</button>
             </div>
         </div>
     </div>

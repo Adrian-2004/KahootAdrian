@@ -113,6 +113,17 @@ h3 {
     box-shadow: none;
 }
 
+.btn-outline {
+    background: transparent;
+    color: #46178f;
+    border: 2px solid #46178f;
+}
+
+.btn-outline:hover {
+    background: #46178f;
+    color: white;
+}
+
 .form-group {
     margin-bottom: 18px;
 }
@@ -386,6 +397,35 @@ tr:nth-child(3) td {
 
 .hidden {
     display: none !important;
+}
+
+.live-info {
+    text-align: center;
+    color: #2699fb;
+    font-size: 0.85em;
+    margin-bottom: 10px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.live-game-info {
+    text-align: center;
+    background: #f5f0ff;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #46178f;
+}
+
+.q-options-preview {
+    font-size: 0.8em;
+    color: #999;
+    font-weight: 400;
 }
 
 /* Responsive */
