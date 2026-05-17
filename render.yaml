@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: kahoot-api
+    runtime: java
+    repo: https://github.com/Adrian-2004/KahootAdrian
+    buildCommand: mvn clean package -DskipTests
+    startCommand: java -jar target/*.jar --server.port=$PORT
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: SPRING_PROFILES_ACTIVE
+        value: production

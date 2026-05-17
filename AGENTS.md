@@ -13,6 +13,18 @@
 - `mvn spring-boot:run` — Iniciar la aplicación
 - `mvn clean compile` — Compilar
 - `mvn test` — Ejecutar tests
+- `mvn clean package -DskipTests` — Generar JAR para deploy
+
+## Deploy en Render.com
+1. Crear cluster gratis en MongoDB Atlas
+2. Obtener connection string y ponerlo como `MONGODB_URI` en Render
+3. Conectar repo de GitHub a Render
+4. Render build command: `mvn clean package -DskipTests`
+5. Render start command: `java -jar target/*.jar --server.port=$PORT`
+
+## Variables de entorno
+- `MONGODB_URI` — URI de MongoDB (local por defecto)
+- `PORT` — Puerto del servidor (8080 por defecto)
 
 ## Endpoints
 | Método | Ruta | Descripción |
