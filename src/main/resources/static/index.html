@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kahoot Quiz</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div id="app">
+        <!-- Screen: Home -->
+        <div id="screen-home" class="screen active">
+            <div class="container">
+                <h1 class="title">Kahoot Quiz</h1>
+                <p class="subtitle">Juego de preguntas y respuestas</p>
+                <div class="home-buttons">
+                    <button class="btn btn-primary" onclick="showCreateGame()">Crear Juego</button>
+                    <button class="btn btn-secondary" onclick="showJoinGame()">Unirse a Juego</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen: Create Game -->
+        <div id="screen-create" class="screen">
+            <div class="container">
+                <h2>Crear Nuevo Juego</h2>
+                <form id="create-form">
+                    <div class="form-group">
+                        <label for="game-name">Nombre del juego</label>
+                        <input type="text" id="game-name" placeholder="Ej: Historia Universal" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Crear Juego</button>
+                </form>
+                <button class="btn btn-back" onclick="showHome()">Volver</button>
+            </div>
+        </div>
+
+        <!-- Screen: Admin - Add Questions -->
+        <div id="screen-admin" class="screen">
+            <div class="container">
+                <div class="join-code-box">
+                    <span class="join-code-label">Codigo de union:</span>
+                    <span class="join-code-value" id="display-join-code">------</span>
+                </div>
+                <p class="game-id-info" id="display-game-id"></p>
+
+                <h3>Agregar Pregunta</h3>
+                <form id="question-form">
+                    <div class="form-group">
+                        <label for="question-text">Pregunta</label>
+                        <input type="text" id="question-text" placeholder="Escribe la pregunta" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Opciones de respuesta</label>
+                        <div class="options-grid">
+                            <input type="text" class="option-input" placeholder="Opcion 1" data-index="0">
+                            <input type="text" class="option-input" placeholder="Opcion 2" data-index="1">
+                            <input type="text" class="option-input" placeholder="Opcion 3" data-index="2">
+                            <input type="text" class="option-input" placeholder="Opcion 4" data-index="3">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="correct-option">Opcion correcta</label>
+                        <select id="correct-option" class="select-input">
+                            <option value="0">Opcion 1</option>
+                            <option value="1">Opcion 2</option>
+                            <option value="2">Opcion 3</option>
+                            <option value="3">Opcion 4</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Anadir Pregunta</button>
+                </form>
+
+                <h3>Preguntas agregadas</h3>
+                <div id="questions-list">
+                    <p class="empty-state">No hay preguntas aun. Agrega la primera.</p>
+                </div>
+
+                <button class="btn btn-secondary" onclick="showRanking(getCurrentGameId(), 'admin')">Ver Ranking</button>
+            </div>
+        </div>
+
+        <!-- Screen: Join Game -->
+        <div id="screen-join" class="screen">
+            <div class="container">
+                <h2>Unirse al Juego</h2>
+                <form id="join-form">
+                    <div class="form-group">
+                        <label for="join-code">Codigo de union</label>
+                        <input type="text" id="join-code" placeholder="Ej: ABC123" maxlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="player-name">Tu nombre</label>
+                        <input type="text" id="player-name" placeholder="Ej: Juan" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Unirse</button>
+                </form>
+                <button class="btn btn-back" onclick="showHome()">Volver</button>
+            </div>
+        </div>
+
+        <!-- Screen: Play -->
+        <div id="screen-play" class="screen">
+            <div class="container">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <div class="question-counter" id="question-counter">Pregunta 1 / 1</div>
+                <h2 class="question-text" id="current-question">Cargando pregunta...</h2>
+                <div id="options-container" class="options-container"></div>
+                <div id="answer-feedback" class="feedback hidden"></div>
+            </div>
+        </div>
+
+        <!-- Screen: Ranking -->
+        <div id="screen-ranking" class="screen">
+            <div class="container">
+                <h2>Clasificacion</h2>
+                <table id="ranking-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Jugador</th>
+                            <th>Puntos</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ranking-body"></tbody>
+                </table>
+                <p id="ranking-empty" class="empty-state hidden">Aun no hay respuestas.</p>
+                <button class="btn btn-back" onclick="showHome()">Volver al inicio</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/quiz-game-db
+
+server:
+  port: 8080
