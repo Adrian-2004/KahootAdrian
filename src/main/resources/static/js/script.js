@@ -1,54 +1,60 @@
 // State
-let currentGameId = null;
-let currentPlayerId = null;
-let currentPlayerName = null;
-let currentQuestions = [];
-let currentQuestionIndex = 0;
-let lastAdminGameId = null;
-let liveInterval = null;
+var state = {
+    currentGameId: null,
+    currentPlayerId: null,
+    currentPlayerName: null,
+    currentQuestions: [],
+    currentQuestionIndex: 0,
+    lastAdminGameId: null,
+    liveInterval: null
+};
 
-const API_BASE = '';
+var API_BASE = '';
 
 // --- Auth State ---
-function getToken() { return localStorage.getItem('kahoot_token'); }
-function getUsername() { return localStorage.getItem('kahoot_username'); }
-function getUserId() { return localStorage.getItem('kahoot_userId'); }
+function getToken() { return localStorage.getItem('k_token'); }
+function getUsername() { return localStorage.getItem('k_user'); }
+function getUserId() { return localStorage.getItem('k_id'); }
 
 function setAuth(token, userId, username) {
-    localStorage.setItem('kahoot_token', token);
-    localStorage.setItem('kahoot_userId', userId);
-    localStorage.setItem('kahoot_username', username);
+    localStorage.setItem('k_token', token);
+    localStorage.setItem('k_id', userId);
+    localStorage.setItem('k_user', username);
 }
 
 function clearAuth() {
-    localStorage.removeItem('kahoot_token');
-    localStorage.removeItem('kahoot_userId');
-    localStorage.removeItem('kahoot_username');
+    localStorage.removeItem('k_token');
+    localStorage.removeItem('k_id');
+    localStorage.removeItem('k_user');
 }
 
 function isLoggedIn() { return !!getToken(); }
 
+function $(id) { return document.getElementById(id); }
+
 // --- Navigation ---
 function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    var el = $(screenId);
+    if (el) el.classList.add('active');
 }
 
 function showHome() {
     stopLiveRefresh();
-    currentGameId = null;
-    currentPlayerId = null;
-    currentPlayerName = null;
-    currentQuestions = [];
-    currentQuestionIndex = 0;
+    state.currentGameId = null;
+    state.currentPlayerId = null;
+    state.currentPlayerName = null;
+    state.currentQuestions = [];
+    state.currentQuestionIndex = 0;
     updateUserStatus();
     showScreen('screen-home');
 }
 
 function updateUserStatus() {
-    const el = document.getElementById('user-status');
+    var el = $('user-status');
+    if (!el) return;
     if (isLoggedIn()) {
-        el.innerHTML = 'Conectado como <strong>' + escapeHtml(getUsername()) + '</strong> | <a href="#" onclick="logout()">Cerrar sesion</a>';
+        el.innerHTML = 'Conectado como <strong>' + escapeHtml(getUsername()) + '</strong> | <a href="#" onclick="logout();return false">Cerrar sesion</a>';
     } else {
         el.innerHTML = '';
     }
@@ -66,180 +72,200 @@ function handleCreateGame() {
     if (!isLoggedIn()) {
         showLogin();
     } else {
-        document.getElementById('create-form').reset();
+        var f = $('create-form');
+        if (f) f.reset();
         showScreen('screen-create');
     }
 }
 
 function showRankingAdmin() {
-    if (lastAdminGameId) {
-        showRanking(lastAdminGameId);
+    if (state.lastAdminGameId) {
+        showRanking(state.lastAdminGameId);
     } else {
         alert('Primero crea un juego');
     }
 }
 
 // --- Auth ---
-document.getElementById('login-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
-
-    try {
-        const res = await fetch(API_BASE + '/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+function initAuth() {
+    var loginForm = $('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var username = $('login-username').value.trim();
+            var password = $('login-password').value;
+            fetch(API_BASE + '/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            }).then(function (r) {
+                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error'); });
+                return r.json();
+            }).then(function (data) {
+                setAuth(data.token, data.userId, data.username);
+                var gn = $('game-name');
+                if (gn) gn.focus();
+                showScreen('screen-create');
+            }).catch(function (err) {
+                alert('Error: ' + err.message);
+            });
         });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || 'Credenciales invalidas');
-        }
-        const data = await res.json();
-        setAuth(data.token, data.userId, data.username);
-        document.getElementById('game-name').focus();
-        showScreen('screen-create');
-    } catch (err) {
-        alert('Error: ' + err.message);
-    }
-});
-
-document.getElementById('register-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const username = document.getElementById('reg-username').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const confirm = document.getElementById('reg-confirm').value;
-
-    if (password !== confirm) {
-        alert('Las contrasenas no coinciden');
-        return;
     }
 
-    try {
-        const res = await fetch(API_BASE + '/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+    var regForm = $('register-form');
+    if (regForm) {
+        regForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var username = $('reg-username').value.trim();
+            var password = $('reg-password').value;
+            var confirmVal = $('reg-confirm').value;
+            if (password !== confirmVal) {
+                alert('Las contrasenas no coinciden');
+                return;
+            }
+            fetch(API_BASE + '/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            }).then(function (r) {
+                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error'); });
+                return r.json();
+            }).then(function (data) {
+                setAuth(data.token, data.userId, data.username);
+                var gn = $('game-name');
+                if (gn) gn.focus();
+                showScreen('screen-create');
+            }).catch(function (err) {
+                alert('Error: ' + err.message);
+            });
         });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || 'Error al registrarse');
-        }
-        const data = await res.json();
-        setAuth(data.token, data.userId, data.username);
-        document.getElementById('game-name').focus();
-        showScreen('screen-create');
-    } catch (err) {
-        alert('Error: ' + err.message);
     }
-});
+}
 
 // --- Dynamic Options ---
 function updateOptionFields() {
-    const count = parseInt(document.getElementById('options-count').value);
-    const grid = document.getElementById('options-grid');
-    const correctSelect = document.getElementById('correct-option');
+    var count = parseInt($('options-count').value);
+    var grid = $('options-grid');
+    var correctSelect = $('correct-option');
+    if (!grid || !correctSelect) return;
     grid.innerHTML = '';
     correctSelect.innerHTML = '';
-    for (let i = 0; i < count; i++) {
-        const input = document.createElement('input');
+    for (var i = 0; i < count; i++) {
+        var input = document.createElement('input');
         input.type = 'text';
         input.className = 'option-input';
         input.placeholder = 'Opcion ' + (i + 1);
         input.dataset.index = i;
         input.required = true;
         grid.appendChild(input);
-        const option = document.createElement('option');
+        var option = document.createElement('option');
         option.value = i;
         option.textContent = 'Opcion ' + (i + 1);
         correctSelect.appendChild(option);
     }
 }
-document.getElementById('options-count').addEventListener('change', updateOptionFields);
+
+function initOptions() {
+    var el = $('options-count');
+    if (el) el.addEventListener('change', updateOptionFields);
+}
 
 // --- Create Game ---
-document.getElementById('create-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const name = document.getElementById('game-name').value.trim();
-    if (!name) return;
+function initCreateGame() {
+    var form = $('create-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = $('game-name').value.trim();
+        if (!name) return;
 
-    try {
-        const res = await fetch(API_BASE + '/api/games', {
+        fetch(API_BASE + '/api/games', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': getToken()
             },
-            body: JSON.stringify({ name })
+            body: JSON.stringify({ name: name })
+        }).then(function (res) {
+            if (res.status === 401) {
+                clearAuth();
+                showLogin();
+                return null;
+            }
+            if (!res.ok) throw new Error('Error al crear el juego');
+            return res.json();
+        }).then(function (game) {
+            if (!game) return;
+            state.lastAdminGameId = game.id;
+            state.currentGameId = game.id;
+            var jc = $('display-join-code');
+            if (jc) jc.textContent = game.joinCode;
+            var gi = $('display-game-id');
+            if (gi) gi.textContent = 'ID: ' + game.id + ' | Autor: ' + (game.authorUsername || 'anonimo');
+            var ql = $('questions-list');
+            if (ql) ql.innerHTML = '<p class="empty-state">No hay preguntas aun. Agrega la primera.</p>';
+            var qf = $('question-form');
+            if (qf) qf.reset();
+            updateOptionFields();
+            showScreen('screen-admin');
+        }).catch(function (err) {
+            alert('Error al crear el juego: ' + err.message);
         });
-
-        if (res.status === 401) {
-            clearAuth();
-            showLogin();
-            return;
-        }
-        if (!res.ok) throw new Error('Error al crear el juego');
-
-        const game = await res.json();
-        lastAdminGameId = game.id;
-        currentGameId = game.id;
-        document.getElementById('display-join-code').textContent = game.joinCode;
-        document.getElementById('display-game-id').textContent = 'ID: ' + game.id + ' | Autor: ' + game.authorUsername;
-        document.getElementById('questions-list').innerHTML = '<p class="empty-state">No hay preguntas aun. Agrega la primera.</p>';
-        document.getElementById('question-form').reset();
-        updateOptionFields();
-        showScreen('screen-admin');
-    } catch (err) {
-        alert('Error al crear el juego: ' + err.message);
-    }
-});
+    });
+}
 
 // --- Add Question ---
-document.getElementById('question-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const gameId = currentGameId;
-    if (!gameId) return;
+function initAddQuestion() {
+    var form = $('question-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var gameId = state.currentGameId;
+        if (!gameId) return;
 
-    const text = document.getElementById('question-text').value.trim();
-    if (!text) return;
+        var text = $('question-text').value.trim();
+        if (!text) return;
 
-    const optionInputs = document.querySelectorAll('.option-input');
-    const options = [];
-    let valid = true;
-    optionInputs.forEach(function (input) {
-        const val = input.value.trim();
-        if (!val) valid = false;
-        options.push(val);
-    });
-    if (!valid || options.length < 2) {
-        alert('Debe haber al menos 2 opciones con texto');
-        return;
-    }
-    const correctOptionIndex = parseInt(document.getElementById('correct-option').value);
+        var optionInputs = document.querySelectorAll('.option-input');
+        var options = [];
+        var valid = true;
+        optionInputs.forEach(function (input) {
+            var val = input.value.trim();
+            if (!val) valid = false;
+            options.push(val);
+        });
+        if (!valid || options.length < 2) {
+            alert('Debe haber al menos 2 opciones con texto');
+            return;
+        }
+        var correctOptionIndex = parseInt($('correct-option').value);
 
-    try {
-        const res = await fetch(API_BASE + '/api/games/' + gameId + '/questions', {
+        fetch(API_BASE + '/api/games/' + gameId + '/questions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, options, correctOptionIndex })
+            body: JSON.stringify({ text: text, options: options, correctOptionIndex: correctOptionIndex })
+        }).then(function (res) {
+            if (!res.ok) throw new Error('Error al agregar pregunta');
+            return res.json();
+        }).then(function (game) {
+            renderQuestions(game.questions);
+            var qf = $('question-form');
+            if (qf) qf.reset();
+            updateOptionFields();
+        }).catch(function (err) {
+            alert('Error al agregar pregunta: ' + err.message);
         });
-        if (!res.ok) throw new Error('Error al agregar pregunta');
-        const game = await res.json();
-        renderQuestions(game.questions);
-        document.getElementById('question-form').reset();
-        updateOptionFields();
-    } catch (err) {
-        alert('Error al agregar pregunta: ' + err.message);
-    }
-});
+    });
+}
 
 function renderQuestions(questions) {
-    const container = document.getElementById('questions-list');
+    var container = $('questions-list');
+    if (!container) return;
     if (!questions || questions.length === 0) {
         container.innerHTML = '<p class="empty-state">No hay preguntas aun. Agrega la primera.</p>';
         return;
     }
-    let html = '';
+    var html = '';
     questions.forEach(function (q, idx) {
         html += '<div class="question-item">' +
             '<span class="q-text">' + (idx + 1) + '. ' + escapeHtml(q.text) + '</span>' +
@@ -249,150 +275,173 @@ function renderQuestions(questions) {
     container.innerHTML = html;
 }
 
-async function deleteQuestion(questionId) {
-    const gameId = currentGameId;
+function deleteQuestion(questionId) {
+    var gameId = state.currentGameId;
     if (!gameId) return;
-    try {
-        const res = await fetch(API_BASE + '/api/games/' + gameId + '/questions/' + questionId, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Error al eliminar pregunta');
-        const game = await res.json();
-        renderQuestions(game.questions);
-    } catch (err) {
-        alert('Error al eliminar pregunta: ' + err.message);
-    }
+    fetch(API_BASE + '/api/games/' + gameId + '/questions/' + questionId, { method: 'DELETE' })
+        .then(function (res) {
+            if (!res.ok) throw new Error('Error');
+            return res.json();
+        })
+        .then(function (game) { renderQuestions(game.questions); })
+        .catch(function (err) { alert('Error al eliminar pregunta'); });
 }
 
 // --- Game Browser ---
-async function showGameBrowser() {
-    document.getElementById('browser-join-code').value = '';
-    document.getElementById('browser-ranking-result').classList.add('hidden');
-    document.getElementById('game-list').innerHTML = '<p class="empty-state">Cargando juegos...</p>';
+function showGameBrowser() {
     showScreen('screen-browser');
-    await loadGames();
+    var jc = $('browser-join-code');
+    if (jc) jc.value = '';
+    var br = $('browser-ranking-result');
+    if (br) br.classList.add('hidden');
+    var gl = $('game-list');
+    if (gl) gl.innerHTML = '<p class="empty-state">Cargando juegos...</p>';
+    loadGames(null, null);
 }
 
-async function loadGames(name, author) {
-    const container = document.getElementById('game-list');
-    try {
-        let url = API_BASE + '/api/games';
-        const params = [];
-        if (name) params.push('name=' + encodeURIComponent(name));
-        if (author) params.push('author=' + encodeURIComponent(author));
-        if (params.length) url += '?' + params.join('&');
+function loadGames(name, author) {
+    var container = $('game-list');
+    if (!container) return;
+    var url = API_BASE + '/api/games';
+    var params = [];
+    if (name) params.push('name=' + encodeURIComponent(name));
+    if (author) params.push('author=' + encodeURIComponent(author));
+    if (params.length) url += '?' + params.join('&');
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Error al cargar juegos');
-        const games = await res.json();
-
-        if (games.length === 0) {
-            container.innerHTML = '<p class="empty-state">No se encontraron juegos.</p>';
-            return;
-        }
-
-        let html = '';
-        games.forEach(function (g) {
-            html += '<div class="game-card" onclick="showJoinGame(\'' + g.id + '\', \'' + escapeHtml(g.name) + '\')">' +
-                '<div class="game-card-name">' + escapeHtml(g.name) + '</div>' +
-                '<div class="game-card-author">Por ' + escapeHtml(g.authorUsername || 'anonimo') +
-                ' | Codigo: ' + g.joinCode + '</div>' +
-                '<div class="game-card-questions">' + (g.questions ? g.questions.length : 0) + ' preguntas</div>' +
-                '</div>';
+    fetch(url)
+        .then(function (res) {
+            if (!res.ok) throw new Error('Error');
+            return res.json();
+        })
+        .then(function (games) {
+            if (games.length === 0) {
+                container.innerHTML = '<p class="empty-state">No se encontraron juegos.</p>';
+                return;
+            }
+            var html = '';
+            games.forEach(function (g) {
+                html += '<div class="game-card" data-gameid="' + g.id + '" data-gamename="' + escapeAttr(g.name) + '">' +
+                    '<div class="game-card-name">' + escapeHtml(g.name) + '</div>' +
+                    '<div class="game-card-author">Por ' + escapeHtml(g.authorUsername || 'anonimo') +
+                    ' | Codigo: ' + g.joinCode + '</div>' +
+                    '<div class="game-card-questions">' + (g.questions ? g.questions.length : 0) + ' preguntas</div>' +
+                    '</div>';
+            });
+            container.innerHTML = html;
+            // Add click handlers
+            container.querySelectorAll('.game-card').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    showJoinGame(card.dataset.gameid, card.dataset.gamename);
+                });
+            });
+        })
+        .catch(function () {
+            container.innerHTML = '<p class="empty-state">Error al cargar juegos.</p>';
         });
-        container.innerHTML = html;
-    } catch (err) {
-        container.innerHTML = '<p class="empty-state">Error al cargar juegos.</p>';
-    }
 }
 
 function searchGames() {
-    const name = document.getElementById('search-title').value.trim();
-    const author = document.getElementById('search-author').value.trim();
+    var name = $('search-title') ? $('search-title').value.trim() : '';
+    var author = $('search-author') ? $('search-author').value.trim() : '';
     loadGames(name || null, author || null);
 }
 
 // --- Join Game from browser ---
 function showJoinGame(gameId, gameName) {
-    const playerName = prompt('Ingresa tu nombre para unirte a "' + gameName + '":');
+    var playerName = prompt('Ingresa tu nombre para unirte a "' + gameName + '":');
     if (!playerName || !playerName.trim()) return;
     joinGameById(gameId, playerName.trim());
 }
 
-async function joinGameById(gameId, playerName) {
-    try {
-        const gameRes = await fetch(API_BASE + '/api/games/' + gameId);
-        if (!gameRes.ok) throw new Error('Error al obtener el juego');
-        const game = await gameRes.json();
-
-        if (!game.questions || game.questions.length === 0) {
-            alert('El juego aun no tiene preguntas.');
-            return;
-        }
-
-        // Need to get the join code to use the join endpoint
-        const joinRes = await fetch(API_BASE + '/api/games/join', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ joinCode: game.joinCode, name: playerName })
+function joinGameById(gameId, playerName) {
+    fetch(API_BASE + '/api/games/' + gameId)
+        .then(function (res) {
+            if (!res.ok) throw new Error('Error al obtener el juego');
+            return res.json();
+        })
+        .then(function (game) {
+            if (!game.questions || game.questions.length === 0) {
+                alert('El juego aun no tiene preguntas.');
+                return null;
+            }
+            return fetch(API_BASE + '/api/games/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ joinCode: game.joinCode, name: playerName })
+            }).then(function (joinRes) {
+                if (!joinRes.ok) return joinRes.json().then(function (d) { throw new Error(d.error || 'Error'); });
+                return joinRes.json().then(function (player) {
+                    state.currentPlayerId = player.id;
+                    state.currentPlayerName = playerName;
+                    state.currentGameId = player.gameId;
+                    state.currentQuestions = game.questions;
+                    state.currentQuestionIndex = 0;
+                    startPlaying();
+                });
+            });
+        })
+        .catch(function (err) {
+            alert(err.message);
         });
-        if (!joinRes.ok) {
-            const err = await joinRes.json();
-            throw new Error(err.error || 'Error al unirse');
-        }
-
-        const player = await joinRes.json();
-        currentPlayerId = player.id;
-        currentPlayerName = playerName;
-        currentGameId = player.gameId;
-        currentQuestions = game.questions;
-        currentQuestionIndex = 0;
-        startPlaying();
-    } catch (err) {
-        alert(err.message);
-    }
 }
 
 // --- Join by code (also used for live ranking) ---
-async function searchRankingByCode() {
-    const joinCode = document.getElementById('browser-join-code').value.trim().toUpperCase();
+function searchRankingByCode() {
+    var joinCode = $('browser-join-code') ? $('browser-join-code').value.trim().toUpperCase() : '';
     if (!joinCode) return;
 
-    try {
-        const res = await fetch(API_BASE + '/api/games');
-        if (!res.ok) throw new Error('Error');
-        const games = await res.json();
-        const game = games.find(g => g.joinCode === joinCode);
-        if (!game) {
-            alert('Codigo de juego invalido');
-            return;
-        }
-
-        document.getElementById('browser-game-info').textContent = 'Juego: ' + game.name;
-        document.getElementById('browser-ranking-result').classList.remove('hidden');
-        await refreshRankingByCode(game.id);
-        stopLiveRefresh();
-        liveInterval = setInterval(function () { refreshRankingByCode(game.id); }, 3000);
-    } catch (err) {
-        alert('Error: ' + err.message);
-    }
+    fetch(API_BASE + '/api/games')
+        .then(function (res) {
+            if (!res.ok) throw new Error('Error');
+            return res.json();
+        })
+        .then(function (games) {
+            var game = null;
+            for (var i = 0; i < games.length; i++) {
+                if (games[i].joinCode === joinCode) { game = games[i]; break; }
+            }
+            if (!game) {
+                alert('Codigo de juego invalido');
+                return;
+            }
+            var gi = $('browser-game-info');
+            if (gi) gi.textContent = 'Juego: ' + game.name;
+            var br = $('browser-ranking-result');
+            if (br) br.classList.remove('hidden');
+            refreshRankingByCode(game.id);
+            stopLiveRefresh();
+            state.liveInterval = setInterval(function () { refreshRankingByCode(game.id); }, 3000);
+        })
+        .catch(function (err) {
+            alert('Error: ' + err.message);
+        });
 }
 
-async function refreshRankingByCode(gameId) {
-    const tbody = document.getElementById('browser-ranking-body');
-    try {
-        const res = await fetch(API_BASE + '/api/games/' + gameId + '/ranking');
-        if (!res.ok) return;
-        const ranking = await res.json();
-        tbody.innerHTML = '';
-        ranking.forEach(function (entry, index) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = '<td>' + (index + 1) + '</td><td>' + escapeHtml(entry.playerName) + '</td><td>' + entry.score + '</td>';
-            tbody.appendChild(tr);
-        });
-    } catch (_) { }
+function refreshRankingByCode(gameId) {
+    var tbody = $('browser-ranking-body');
+    if (!tbody) return;
+    fetch(API_BASE + '/api/games/' + gameId + '/ranking')
+        .then(function (res) {
+            if (!res.ok) return null;
+            return res.json();
+        })
+        .then(function (ranking) {
+            if (!ranking) return;
+            tbody.innerHTML = '';
+            ranking.forEach(function (entry, index) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (index + 1) + '</td><td>' + escapeHtml(entry.playerName) + '</td><td>' + entry.score + '</td>';
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(function () { });
 }
 
 function stopLiveRefresh() {
-    if (liveInterval) { clearInterval(liveInterval); liveInterval = null; }
+    if (state.liveInterval) {
+        clearInterval(state.liveInterval);
+        state.liveInterval = null;
+    }
 }
 
 // --- Play ---
@@ -402,100 +451,110 @@ function startPlaying() {
 }
 
 function showQuestion() {
-    if (currentQuestionIndex >= currentQuestions.length) {
-        showRanking(currentGameId);
+    if (state.currentQuestionIndex >= state.currentQuestions.length) {
+        showRanking(state.currentGameId);
         return;
     }
-    const q = currentQuestions[currentQuestionIndex];
-    const total = currentQuestions.length;
-    document.getElementById('question-counter').textContent = 'Pregunta ' + (currentQuestionIndex + 1) + ' / ' + total;
-    document.getElementById('current-question').textContent = q.text;
-    document.getElementById('progress-bar').style.width = (currentQuestionIndex / total) * 100 + '%';
+    var q = state.currentQuestions[state.currentQuestionIndex];
+    var total = state.currentQuestions.length;
+    var qc = $('question-counter');
+    if (qc) qc.textContent = 'Pregunta ' + (state.currentQuestionIndex + 1) + ' / ' + total;
+    var cq = $('current-question');
+    if (cq) cq.textContent = q.text;
+    var pb = $('progress-bar');
+    if (pb) pb.style.width = (state.currentQuestionIndex / total) * 100 + '%';
 
-    const container = document.getElementById('options-container');
+    var container = $('options-container');
+    if (!container) return;
     container.innerHTML = '';
     q.options.forEach(function (opt, idx) {
-        const btn = document.createElement('button');
+        var btn = document.createElement('button');
         btn.className = 'option-btn';
         btn.textContent = opt;
         btn.dataset.index = idx;
-        btn.addEventListener('click', function () { submitAnswer(q.id, idx); });
+        btn.addEventListener('click', function () {
+            submitAnswer(q.id, idx);
+        });
         container.appendChild(btn);
     });
 
-    const feedback = document.getElementById('answer-feedback');
-    feedback.classList.add('hidden');
-    feedback.className = 'feedback hidden';
+    var feedback = $('answer-feedback');
+    if (feedback) {
+        feedback.classList.add('hidden');
+        feedback.className = 'feedback hidden';
+    }
 }
 
-async function submitAnswer(questionId, selectedIndex) {
-    const btns = document.querySelectorAll('.option-btn');
+function submitAnswer(questionId, selectedIndex) {
+    var btns = document.querySelectorAll('.option-btn');
     btns.forEach(function (b) { b.disabled = true; });
 
-    try {
-        const res = await fetch(API_BASE + '/api/games/' + currentGameId + '/answers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                playerId: currentPlayerId,
-                questionId: questionId,
-                selectedOptionIndex: selectedIndex
-            })
-        });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || 'Error al enviar respuesta');
-        }
-        const answer = await res.json();
-        const q = currentQuestions[currentQuestionIndex];
-
+    fetch(API_BASE + '/api/games/' + state.currentGameId + '/answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            playerId: state.currentPlayerId,
+            questionId: questionId,
+            selectedOptionIndex: selectedIndex
+        })
+    }).then(function (res) {
+        if (!res.ok) return res.json().then(function (d) { throw new Error(d.error || 'Error'); });
+        return res.json();
+    }).then(function (answer) {
+        var q = state.currentQuestions[state.currentQuestionIndex];
         btns.forEach(function (b, idx) {
             if (idx === selectedIndex && answer.correct) b.classList.add('correct');
             else if (idx === selectedIndex && !answer.correct) b.classList.add('incorrect');
             else if (answer.correctOptionText && q.options[idx] === answer.correctOptionText) b.classList.add('reveal');
         });
-
-        const feedback = document.getElementById('answer-feedback');
-        if (answer.correct) {
-            feedback.textContent = 'Correcto!';
-            feedback.className = 'feedback correct';
-        } else {
-            feedback.textContent = 'Incorrecto. La respuesta correcta era: ' + (answer.correctOptionText || '?');
-            feedback.className = 'feedback incorrect';
+        var feedback = $('answer-feedback');
+        if (feedback) {
+            if (answer.correct) {
+                feedback.textContent = 'Correcto!';
+                feedback.className = 'feedback correct';
+            } else {
+                feedback.textContent = 'Incorrecto. La respuesta correcta era: ' + (answer.correctOptionText || '?');
+                feedback.className = 'feedback incorrect';
+            }
         }
-        currentQuestionIndex++;
+        state.currentQuestionIndex++;
         setTimeout(function () { showQuestion(); }, 1800);
-    } catch (err) {
+    }).catch(function (err) {
         alert(err.message);
         btns.forEach(function (b) { b.disabled = false; });
-    }
+    });
 }
 
 // --- Ranking ---
-async function showRanking(gameId) {
-    const tbody = document.getElementById('ranking-body');
-    const empty = document.getElementById('ranking-empty');
-    tbody.innerHTML = '';
-    empty.classList.add('hidden');
+function showRanking(gameId) {
     showScreen('screen-ranking');
+    var tbody = $('ranking-body');
+    var empty = $('ranking-empty');
+    if (tbody) tbody.innerHTML = '';
+    if (empty) empty.classList.add('hidden');
 
-    try {
-        const res = await fetch(API_BASE + '/api/games/' + gameId + '/ranking');
-        if (!res.ok) throw new Error('Error');
-        const ranking = await res.json();
-        if (ranking.length === 0) {
-            empty.classList.remove('hidden');
-            return;
-        }
-        ranking.forEach(function (entry, index) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = '<td>' + (index + 1) + '</td><td>' + escapeHtml(entry.playerName) + '</td><td>' + entry.score + '</td>';
-            tbody.appendChild(tr);
+    fetch(API_BASE + '/api/games/' + gameId + '/ranking')
+        .then(function (res) {
+            if (!res.ok) throw new Error('Error');
+            return res.json();
+        })
+        .then(function (ranking) {
+            if (ranking.length === 0) {
+                if (empty) empty.classList.remove('hidden');
+                return;
+            }
+            ranking.forEach(function (entry, index) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (index + 1) + '</td><td>' + escapeHtml(entry.playerName) + '</td><td>' + entry.score + '</td>';
+                if (tbody) tbody.appendChild(tr);
+            });
+        })
+        .catch(function () {
+            if (empty) {
+                empty.textContent = 'Error al cargar la clasificacion';
+                empty.classList.remove('hidden');
+            }
         });
-    } catch (_) {
-        empty.textContent = 'Error al cargar la clasificacion';
-        empty.classList.remove('hidden');
-    }
 }
 
 // --- Utilities ---
@@ -505,6 +564,22 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+function escapeAttr(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // --- Init ---
-updateUserStatus();
-updateOptionFields();
+function init() {
+    updateUserStatus();
+    updateOptionFields();
+    initAuth();
+    initOptions();
+    initCreateGame();
+    initAddQuestion();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
