@@ -1,3 +1,5 @@
+alert('JS loaded - v9');
+
 // State
 var state = {
     currentGameId: null,
@@ -69,6 +71,7 @@ function showLogin() { showScreen('screen-login'); }
 function showRegister() { showScreen('screen-register'); }
 
 function handleCreateGame() {
+    alert('handleCreateGame called');
     if (!isLoggedIn()) {
         showLogin();
     } else {
