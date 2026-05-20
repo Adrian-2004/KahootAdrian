@@ -71,15 +71,30 @@ function showLogin() { showScreen('screen-login'); }
 function showRegister() { showScreen('screen-register'); }
 
 function handleCreateGame() {
-    // Comprueba si el usuario está logueado (si guardas el usuario en localStorage)
-    const user = localStorage.getItem('user');
-    if (!user) {
-        alert("Debes iniciar sesión para crear un juego.");
+    // 1. Intentamos buscar si hay un token o usuario guardado en el navegador
+    // (Ajusta 'token' o 'user' según lo que use tu formulario de login real)
+    const isAuthenticated = localStorage.getItem('token') || localStorage.getItem('user');
+    
+    if (!isAuthenticated) {
+        alert("Debes iniciar sesión con tu usuario y contraseña para crear un juego.");
+        
+        // 2. Ocultamos la pantalla principal. 
+        // Nota: Asegúrate de si tu pantalla de inicio se llama 'screen-home' o 'home-section'
+        const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
+        if (homeScreen) homeScreen.style.display = 'none';
+        
+        // 3. Mostramos tu pantalla de login real
+        document.getElementById('screen-login').style.display = 'block';
         return;
     }
-    // Oculta la pantalla principal y muestra la de creación
-    document.getElementById('home-section').style.display = 'none';
-    document.getElementById('create-section').style.display = 'block';
+    
+    // Si ya está logueado, avanzamos a la pantalla de creación
+    // (Ajusta 'screen-create' por el ID real de tu pantalla de creación si fuera necesario)
+    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
+    if (homeScreen) homeScreen.style.display = 'none';
+    
+    const createScreen = document.getElementById('screen-create') || document.getElementById('create-section');
+    if (createScreen) createScreen.style.display = 'block';
 }
 
 function showRankingAdmin() {
