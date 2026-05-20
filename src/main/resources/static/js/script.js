@@ -1,4 +1,4 @@
-alert('JS loaded - v9');
+alert('JS loaded - v10');
 
 // State
 var state = {
@@ -36,28 +36,32 @@ function $(id) { return document.getElementById(id); }
 
 // --- Navigation ---
 function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    // Oculta todas las pantallas clásicas que usan clases .screen
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); s.style.display = 'none'; });
+    
+    // Oculta también los bloques alternativos que pusimos antes por seguridad
+    const alternativeHomes = [document.getElementById('home-section'), document.getElementById('login-section'), document.getElementById('screen-login'), document.getElementById('screen-register'), document.getElementById('register-section'), document.getElementById('screen-signup'), document.getElementById('screen-create'), document.getElementById('create-section')];
+    alternativeHomes.forEach(function(el) { if(el) el.style.display = 'none'; });
+
     var el = $(screenId);
-    if (el) el.classList.add('active');
+    if (el) {
+        el.classList.add('active');
+        el.style.display = 'block'; // Fuerza a que se vea la pantalla solicitada
+    }
 }
 
 function showHome() {
-    // Escondemos todas las secciones posibles de autenticación
-    const loginScreen = document.getElementById('screen-login') || document.getElementById('login-section');
-    const registerScreen = document.getElementById('screen-register') || document.getElementById('register-section') || document.getElementById('screen-signup');
-    
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (registerScreen) registerScreen.style.display = 'none';
-    
-    // Mostramos la pantalla principal de la web
-    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
-    if (homeScreen) homeScreen.style.display = 'block';
+    showScreen('screen-home');
+    // Soporte para IDs antiguos alternativos
+    var homeSection = $('home-section');
+    if (homeSection) homeSection.style.display = 'block';
 }
+
 function updateUserStatus() {
     var el = $('user-status');
     if (!el) return;
     if (isLoggedIn()) {
-        el.innerHTML = 'Conectado como <strong>' + escapeHtml(getUsername()) + '</strong> | <a href="#" onclick="logout();return false">Cerrar sesion</a>';
+        el.innerHTML = '<span style="color: #ffffff !important; font-weight: bold; background-color: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px;">Conectado como <strong>' + escapeHtml(getUsername()) + '</strong></span> | <a href="#" onclick="logout();return false" style="color: #ffc107 !important; font-weight: bold;">Cerrar sesión</a>';
     } else {
         el.innerHTML = '';
     }
@@ -65,60 +69,34 @@ function updateUserStatus() {
 
 function logout() {
     clearAuth();
+    updateUserStatus();
     showHome();
 }
 
 function showLogin() {
-    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
-    const registerScreen = document.getElementById('screen-register') || document.getElementById('register-section') || document.getElementById('screen-signup');
-    
-    if (homeScreen) homeScreen.style.display = 'none';
-    if (registerScreen) registerScreen.style.display = 'none';
-    
-    const loginScreen = document.getElementById('screen-login') || document.getElementById('login-section');
-    if (loginScreen) loginScreen.style.display = 'block';
+    showScreen('screen-login');
 }
+
 function showRegister() {
-    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
-    const loginScreen = document.getElementById('screen-login') || document.getElementById('login-section');
-    
-    if (homeScreen) homeScreen.style.display = 'none';
-    if (loginScreen) loginScreen.style.display = 'none';
-    
-    // Buscamos la pantalla de registro por sus posibles nombres
-    const registerScreen = document.getElementById('screen-register') || document.getElementById('register-section') || document.getElementById('screen-signup');
-    if (registerScreen) {
-        registerScreen.style.display = 'block';
+    // Busca el ID real de tu pantalla de registro
+    var regScreen = $('screen-register') || $('register-section') || $('screen-signup');
+    if (regScreen) {
+        showScreen(regScreen.id);
     } else {
         console.error("No se encontró el ID de la pantalla de registro.");
     }
 }
 
 function handleCreateGame() {
-    // 1. Intentamos buscar si hay un token o usuario guardado en el navegador
-    // (Ajusta 'token' o 'user' según lo que use tu formulario de login real)
-    const isAuthenticated = localStorage.getItem('token') || localStorage.getItem('user');
-    
-    if (!isAuthenticated) {
+    // Corregido: Ahora comprueba 'k_token' de forma nativa con isLoggedIn()
+    if (!isLoggedIn()) {
         alert("Debes iniciar sesión con tu usuario y contraseña para crear un juego.");
-        
-        // 2. Ocultamos la pantalla principal. 
-        // Nota: Asegúrate de si tu pantalla de inicio se llama 'screen-home' o 'home-section'
-        const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
-        if (homeScreen) homeScreen.style.display = 'none';
-        
-        // 3. Mostramos tu pantalla de login real
-        document.getElementById('screen-login').style.display = 'block';
+        showLogin();
         return;
     }
     
-    // Si ya está logueado, avanzamos a la pantalla de creación
-    // (Ajusta 'screen-create' por el ID real de tu pantalla de creación si fuera necesario)
-    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
-    if (homeScreen) homeScreen.style.display = 'none';
-    
-    const createScreen = document.getElementById('screen-create') || document.getElementById('create-section');
-    if (createScreen) createScreen.style.display = 'block';
+    // Si ya está logueado, vamos directo al creador (formulario del título)
+    showScreen('screen-create');
 }
 
 function showRankingAdmin() {
@@ -146,6 +124,7 @@ function initAuth() {
                 return r.json();
             }).then(function (data) {
                 setAuth(data.token, data.userId, data.username);
+                updateUserStatus();
                 var gn = $('game-name');
                 if (gn) gn.focus();
                 showScreen('screen-create');
@@ -163,7 +142,7 @@ function initAuth() {
             var password = $('reg-password').value;
             var confirmVal = $('reg-confirm').value;
             if (password !== confirmVal) {
-                alert('Las contrasenas no coinciden');
+                alert('Las contraseñas no coinciden');
                 return;
             }
             fetch(API_BASE + '/api/auth/register', {
@@ -174,10 +153,13 @@ function initAuth() {
                 if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error'); });
                 return r.json();
             }).then(function (data) {
+                // Registro exitoso: Auto-logueamos al usuario
                 setAuth(data.token, data.userId, data.username);
-                var gn = $('game-name');
-                if (gn) gn.focus();
-                showScreen('screen-create');
+                updateUserStatus();
+                alert("¡Registro completado con éxito! Bienvenido.");
+                
+                // Corregido: Te mandamos al Inicio limpio para que decidas qué hacer, con tu sesión activa
+                showHome();
             }).catch(function (err) {
                 alert('Error: ' + err.message);
             });
@@ -232,6 +214,7 @@ function initCreateGame() {
         }).then(function (res) {
             if (res.status === 401) {
                 clearAuth();
+                updateUserStatus();
                 showLogin();
                 return null;
             }
@@ -244,9 +227,9 @@ function initCreateGame() {
             var jc = $('display-join-code');
             if (jc) jc.textContent = game.joinCode;
             var gi = $('display-game-id');
-            if (gi) gi.textContent = 'ID: ' + game.id + ' | Autor: ' + (game.authorUsername || 'anonimo');
+            if (gi) gi.textContent = 'ID: ' + game.id + ' | Autor: ' + (game.authorUsername || 'anónimo');
             var ql = $('questions-list');
-            if (ql) ql.innerHTML = '<p class="empty-state">No hay preguntas aun. Agrega la primera.</p>';
+            if (ql) ql.innerHTML = '<p class="empty-state">No hay preguntas aún. Agrega la primera.</p>';
             var qf = $('question-form');
             if (qf) qf.reset();
             updateOptionFields();
@@ -305,7 +288,7 @@ function renderQuestions(questions) {
     var container = $('questions-list');
     if (!container) return;
     if (!questions || questions.length === 0) {
-        container.innerHTML = '<p class="empty-state">No hay preguntas aun. Agrega la primera.</p>';
+        container.innerHTML = '<p class="empty-state">No hay preguntas aún. Agrega la primera.</p>';
         return;
     }
     var html = '';
@@ -332,27 +315,14 @@ function deleteQuestion(questionId) {
 
 // --- Game Browser ---
 function showGameBrowser() {
-    // 1. Ocultamos la pantalla de inicio (probando tus dos posibles nombres)
-    const home = document.getElementById('home-section') || document.getElementById('screen-home');
-    if (home) home.style.display = 'none';
-
-    // 2. Buscamos la pantalla del buscador de juegos intentando varios IDs comunes
-    const browser = document.getElementById('browser-section') 
-                  || document.getElementById('screen-browser') 
-                  || document.getElementById('games-section')
-                  || document.getElementById('game-browser');
-
-    if (browser) {
-        // Si encuentra alguno de los 4, lo muestra
-        browser.style.display = 'block';
+    var browserScreen = $('screen-browser') || $('browser-section') || $('games-section') || $('game-browser');
+    if (browserScreen) {
+        showScreen(browserScreen.id);
     } else {
-        // Si sigue sin encontrarlo, nos avisará con un mensaje elegante en vez de romper la consola
         console.error("Error: No se encontró el ID de la sección del buscador en el HTML.");
         alert("¡Ups! No se encuentra la sección de buscar juegos en el diseño HTML.");
         return; 
     }
-
-    // 3. Carga la lista de juegos
     loadGames(); 
 }
 
@@ -379,13 +349,12 @@ function loadGames(name, author) {
             games.forEach(function (g) {
                 html += '<div class="game-card" data-gameid="' + g.id + '" data-gamename="' + escapeAttr(g.name) + '">' +
                     '<div class="game-card-name">' + escapeHtml(g.name) + '</div>' +
-                    '<div class="game-card-author">Por ' + escapeHtml(g.authorUsername || 'anonimo') +
-                    ' | Codigo: ' + g.joinCode + '</div>' +
+                    '<div class="game-card-author">Por ' + escapeHtml(g.authorUsername || 'anónimo') +
+                    ' | Código: ' + g.joinCode + '</div>' +
                     '<div class="game-card-questions">' + (g.questions ? g.questions.length : 0) + ' preguntas</div>' +
                     '</div>';
             });
             container.innerHTML = html;
-            // Add click handlers
             container.querySelectorAll('.game-card').forEach(function (card) {
                 card.addEventListener('click', function () {
                     showJoinGame(card.dataset.gameid, card.dataset.gamename);
@@ -418,7 +387,7 @@ function joinGameById(gameId, playerName) {
         })
         .then(function (game) {
             if (!game.questions || game.questions.length === 0) {
-                alert('El juego aun no tiene preguntas.');
+                alert('El juego aún no tiene preguntas.');
                 return null;
             }
             return fetch(API_BASE + '/api/games/join', {
@@ -442,7 +411,7 @@ function joinGameById(gameId, playerName) {
         });
 }
 
-// --- Join by code (also used for live ranking) ---
+// --- Join by code ---
 function searchRankingByCode() {
     var joinCode = $('browser-join-code') ? $('browser-join-code').value.trim().toUpperCase() : '';
     if (!joinCode) return;
@@ -458,7 +427,7 @@ function searchRankingByCode() {
                 if (games[i].joinCode === joinCode) { game = games[i]; break; }
             }
             if (!game) {
-                alert('Codigo de juego invalido');
+                alert('Código de juego inválido');
                 return;
             }
             var gi = $('browser-game-info');
@@ -567,7 +536,7 @@ function submitAnswer(questionId, selectedIndex) {
         var feedback = $('answer-feedback');
         if (feedback) {
             if (answer.correct) {
-                feedback.textContent = 'Correcto!';
+                feedback.textContent = '¡Correcto!';
                 feedback.className = 'feedback correct';
             } else {
                 feedback.textContent = 'Incorrecto. La respuesta correcta era: ' + (answer.correctOptionText || '?');
@@ -608,7 +577,7 @@ function showRanking(gameId) {
         })
         .catch(function () {
             if (empty) {
-                empty.textContent = 'Error al cargar la clasificacion';
+                empty.textContent = 'Error al cargar la clasificación';
                 empty.classList.remove('hidden');
             }
         });
