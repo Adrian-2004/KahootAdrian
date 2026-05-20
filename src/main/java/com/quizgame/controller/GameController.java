@@ -5,6 +5,8 @@ import com.quizgame.dto.CreateGameRequest;
 import com.quizgame.dto.GameResponse;
 import com.quizgame.dto.QuestionDTO;
 import com.quizgame.entity.Game;
+import com.quizgame.entity.User;
+import com.quizgame.service.AuthService;
 import com.quizgame.service.GameService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,19 +23,34 @@ import java.util.stream.Collectors;
 public class GameController {
 
     private final GameService gameService;
+    private final AuthService authService;
 
     @PostMapping
-    public ResponseEntity<GameResponse> createGame(@Valid @RequestBody CreateGameRequest request) {
-        Game game = gameService.createGame(request.getName());
+    public ResponseEntity<GameResponse> createGame(
+            @Valid @RequestBody CreateGameRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        User user = authService.getUserFromToken(authHeader);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Game game = gameService.createGame(request.getName(), user.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(game));
     }
 
     @GetMapping
-    public ResponseEntity<List<GameResponse>> getAllGames() {
-        List<GameResponse> games = gameService.getAllGames().stream()
+    public ResponseEntity<List<GameResponse>> getAllGames(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String author) {
+        List<Game> games;
+        if ((name != null && !name.isBlank()) || (author != null && !author.isBlank())) {
+            games = gameService.searchGames(name, author);
+        } else {
+            games = gameService.getAllGames();
+        }
+        List<GameResponse> responses = games.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(games);
+        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/{id}")
@@ -70,6 +87,7 @@ public class GameController {
         response.setId(game.getId());
         response.setName(game.getName());
         response.setJoinCode(game.getJoinCode());
+        response.setAuthorUsername(game.getAuthorUsername());
         response.setCreatedAt(game.getCreatedAt());
 
         List<QuestionDTO> questionDTOs = game.getQuestions().stream()

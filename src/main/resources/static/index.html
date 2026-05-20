@@ -15,10 +15,54 @@
                 <h1 class="title">Kahoot Quiz</h1>
                 <p class="subtitle">Juego de preguntas y respuestas</p>
                 <div class="home-buttons">
-                    <button class="btn btn-primary" onclick="showCreateGame()">Crear Juego</button>
-                    <button class="btn btn-secondary" onclick="showJoinGame()">Unirse a Juego</button>
-                    <button class="btn btn-outline" onclick="showLiveRankingForm()">Ranking en Vivo</button>
+                    <button class="btn btn-primary" onclick="handleCreateGame()">Crear Juego</button>
+                    <button class="btn btn-secondary" onclick="showGameBrowser()">Unirse a Juego</button>
                 </div>
+                <div id="user-status" class="user-status"></div>
+            </div>
+        </div>
+
+        <!-- Screen: Login -->
+        <div id="screen-login" class="screen">
+            <div class="container">
+                <h2>Iniciar Sesion</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-username">Usuario</label>
+                        <input type="text" id="login-username" placeholder="Tu usuario" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Contrasena</label>
+                        <input type="password" id="login-password" placeholder="Tu contrasena" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Iniciar Sesion</button>
+                </form>
+                <p class="auth-switch">No tienes cuenta? <a href="#" onclick="showRegister()">Registrate</a></p>
+                <button class="btn btn-back" onclick="showHome()">Volver</button>
+            </div>
+        </div>
+
+        <!-- Screen: Register -->
+        <div id="screen-register" class="screen">
+            <div class="container">
+                <h2>Registrarse</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="reg-username">Usuario</label>
+                        <input type="text" id="reg-username" placeholder="Elige un usuario" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Contrasena</label>
+                        <input type="password" id="reg-password" placeholder="Elige una contrasena" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-confirm">Confirmar contrasena</label>
+                        <input type="password" id="reg-confirm" placeholder="Repite la contrasena" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Registrarse</button>
+                </form>
+                <p class="auth-switch">Ya tienes cuenta? <a href="#" onclick="showLogin()">Inicia sesion</a></p>
+                <button class="btn btn-back" onclick="showHome()">Volver</button>
             </div>
         </div>
 
@@ -79,26 +123,41 @@
                 </div>
 
                 <button class="btn btn-secondary" onclick="showRankingAdmin()">Ver Ranking</button>
-                <button class="btn btn-outline" onclick="showLiveRankingForm()">Ranking en Vivo</button>
             </div>
         </div>
 
-        <!-- Screen: Join Game -->
-        <div id="screen-join" class="screen">
+        <!-- Screen: Game Browser -->
+        <div id="screen-browser" class="screen">
             <div class="container">
-                <h2>Unirse al Juego</h2>
-                <form id="join-form">
-                    <div class="form-group">
-                        <label for="join-code">Codigo de union</label>
-                        <input type="text" id="join-code" placeholder="Ej: ABC123" maxlength="6" required>
+                <h2>Unirse a Juego</h2>
+
+                <div class="join-by-code-section">
+                    <h3>Ranking en Vivo</h3>
+                    <div class="join-code-search">
+                        <input type="text" id="browser-join-code" placeholder="Codigo de juego" maxlength="6">
+                        <button class="btn btn-primary btn-small" onclick="searchRankingByCode()">Buscar</button>
                     </div>
-                    <div class="form-group">
-                        <label for="player-name">Tu nombre</label>
-                        <input type="text" id="player-name" placeholder="Ej: Juan" required>
+                    <div id="browser-ranking-result" class="hidden">
+                        <div class="live-info" id="browser-ranking-info">Actualizando cada 3 segundos...</div>
+                        <div id="browser-game-info" class="live-game-info"></div>
+                        <table>
+                            <thead>
+                                <tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>
+                            </thead>
+                            <tbody id="browser-ranking-body"></tbody>
+                        </table>
                     </div>
-                    <button type="submit" class="btn btn-primary">Unirse</button>
-                </form>
-                <button class="btn btn-back" onclick="showHome()">Volver</button>
+                </div>
+
+                <hr class="section-divider">
+
+                <h3>Buscar Juegos</h3>
+                <div class="browser-filters">
+                    <input type="text" id="search-title" placeholder="Buscar por titulo">
+                    <input type="text" id="search-author" placeholder="Buscar por autor">
+                    <button class="btn btn-primary btn-small" onclick="searchGames()">Filtrar</button>
+                </div>
+                <div id="game-list" class="game-list"></div>
             </div>
         </div>
 
@@ -131,36 +190,6 @@
                 </table>
                 <p id="ranking-empty" class="empty-state hidden">Aun no hay respuestas.</p>
                 <button class="btn btn-back" onclick="showHome()">Volver al inicio</button>
-            </div>
-        </div>
-
-        <!-- Screen: Live Ranking -->
-        <div id="screen-live-ranking" class="screen">
-            <div class="container">
-                <h2>Ranking en Vivo</h2>
-                <form id="live-ranking-form">
-                    <div class="form-group">
-                        <label for="live-join-code">Codigo de union</label>
-                        <input type="text" id="live-join-code" placeholder="Ej: ABC123" maxlength="6" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Ver Ranking</button>
-                </form>
-                <div id="live-ranking-content" class="hidden">
-                    <p class="live-info">Actualizando cada 3 segundos...</p>
-                    <div class="live-game-info" id="live-game-info"></div>
-                    <table id="live-ranking-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Jugador</th>
-                                <th>Puntos</th>
-                            </tr>
-                        </thead>
-                        <tbody id="live-ranking-body"></tbody>
-                    </table>
-                    <p id="live-ranking-empty" class="empty-state hidden">Aun no hay respuestas.</p>
-                </div>
-                <button class="btn btn-back" onclick="stopLiveRanking(); showHome();">Volver al inicio</button>
             </div>
         </div>
     </div>

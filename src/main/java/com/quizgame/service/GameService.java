@@ -5,9 +5,13 @@ import com.quizgame.entity.Question;
 import com.quizgame.exception.GameNotFoundException;
 import com.quizgame.repository.GameRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -16,10 +20,12 @@ import java.util.Random;
 public class GameService {
 
     private final GameRepository gameRepository;
+    private final MongoTemplate mongoTemplate;
 
-    public Game createGame(String name) {
+    public Game createGame(String name, String authorUsername) {
         Game game = new Game();
         game.setName(name);
+        game.setAuthorUsername(authorUsername);
         game.setJoinCode(generateJoinCode());
         game.setCreatedAt(LocalDateTime.now());
         return gameRepository.save(game);
@@ -29,6 +35,25 @@ public class GameService {
         return gameRepository.findAll();
     }
 
+    public List<Game> searchGames(String name, String author) {
+        List<Criteria> criteriaList = new ArrayList<>();
+
+        if (name != null && !name.isBlank()) {
+            criteriaList.add(Criteria.where("name").regex(".*" + java.util.regex.Pattern.quote(name) + ".*", "i"));
+        }
+        if (author != null && !author.isBlank()) {
+            criteriaList.add(Criteria.where("authorUsername").regex(".*" + java.util.regex.Pattern.quote(author) + ".*", "i"));
+        }
+
+        if (criteriaList.isEmpty()) {
+            return gameRepository.findAll();
+        }
+
+        Query query = new Query();
+        query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
+        return mongoTemplate.find(query, Game.class);
+    }
+
     public Game getGameById(String id) {
         return gameRepository.findById(id)
                 .orElseThrow(() -> new GameNotFoundException("Juego no encontrado con ID: " + id));
@@ -36,7 +61,7 @@ public class GameService {
 
     public Game getGameByJoinCode(String joinCode) {
         return gameRepository.findByJoinCode(joinCode)
-                .orElseThrow(() -> new GameNotFoundException("Código de unión inválido: " + joinCode));
+                .orElseThrow(() -> new GameNotFoundException("Codigo de union invalido: " + joinCode));
     }
 
     public void deleteGame(String id) {
@@ -51,7 +76,7 @@ public class GameService {
 
         if (correctOptionIndex < 0 || correctOptionIndex >= options.size()) {
             throw new IllegalArgumentException(
-                    "El índice de la opción correcta debe estar entre 0 y " + (options.size() - 1));
+                    "El indice de la opcion correcta debe estar entre 0 y " + (options.size() - 1));
         }
 
         Question question = new Question();
