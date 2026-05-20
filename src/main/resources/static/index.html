@@ -9,7 +9,6 @@
 <body>
 
     <div id="app">
-        <!-- Screen: Home -->
         <div id="screen-home" class="screen active">
             <div class="container">
                 <h1 class="title">Kahoot Quiz</h1>
@@ -22,27 +21,25 @@
             </div>
         </div>
 
-        <!-- Screen: Login -->
         <div id="screen-login" class="screen">
             <div class="container">
-                <h2>Iniciar Sesion</h2>
+                <h2>Iniciar Sesión</h2>
                 <form id="login-form">
                     <div class="form-group">
                         <label for="login-username">Usuario</label>
                         <input type="text" id="login-username" placeholder="Tu usuario" required>
                     </div>
                     <div class="form-group">
-                        <label for="login-password">Contrasena</label>
-                        <input type="password" id="login-password" placeholder="Tu contrasena" required>
+                        <label for="login-password">Contraseña</label>
+                        <input type="password" id="login-password" placeholder="Tu contraseña" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Iniciar Sesion</button>
+                    <button type="submit" class="btn btn-primary">Entrar</button>
+                    <button type="button" class="btn btn-secondary" onclick="showRegister()">¿No tienes cuenta? Regístrate</button>
+                    <button type="button" class="btn btn-back" onclick="showHome()">Volver</button>
                 </form>
-                <p class="auth-switch">No tienes cuenta? <a href="#" onclick="showRegister()">Registrate</a></p>
-                <button class="btn btn-back" onclick="showHome()">Volver</button>
             </div>
         </div>
 
-        <!-- Screen: Register -->
         <div id="screen-register" class="screen">
             <div class="container">
                 <h2>Registrarse</h2>
@@ -52,118 +49,118 @@
                         <input type="text" id="reg-username" placeholder="Elige un usuario" required>
                     </div>
                     <div class="form-group">
-                        <label for="reg-password">Contrasena</label>
-                        <input type="password" id="reg-password" placeholder="Elige una contrasena" required>
+                        <label for="reg-password">Contraseña</label>
+                        <input type="password" id="reg-password" placeholder="Mínimo 4 caracteres" required>
                     </div>
                     <div class="form-group">
-                        <label for="reg-confirm">Confirmar contrasena</label>
-                        <input type="password" id="reg-confirm" placeholder="Repite la contrasena" required>
+                        <label for="reg-confirm">Confirmar Contraseña</label>
+                        <input type="password" id="reg-confirm" placeholder="Repite la contraseña" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Registrarse</button>
+                    <button type="submit" class="btn btn-primary">Crear Cuenta</button>
+                    <button type="button" class="btn btn-secondary" onclick="showLogin()">¿Ya tienes cuenta? Inicia sesión</button>
+                    <button type="button" class="btn btn-back" onclick="showHome()">Volver</button>
                 </form>
-                <p class="auth-switch">Ya tienes cuenta? <a href="#" onclick="showLogin()">Inicia sesion</a></p>
-                <button class="btn btn-back" onclick="showHome()">Volver</button>
             </div>
         </div>
 
-        <!-- Screen: Create Game -->
         <div id="screen-create" class="screen">
             <div class="container">
-                <h2>Crear Nuevo Juego</h2>
-                <form id="create-section">
+                <h2>Crear un Nuevo Juego</h2>
+                <form id="create-form">
                     <div class="form-group">
                         <label for="game-name">Nombre del juego</label>
-                        <input type="text" id="game-name" placeholder="Ej: Historia Universal" required>
+                        <input type="text" id="game-name" placeholder="Ej: Trivia de Historia" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Crear Juego</button>
+                    <button type="submit" class="btn btn-primary">Continuar</button>
+                    <button type="button" class="btn btn-back" onclick="showHome()">Cancelar</button>
                 </form>
-                <button class="btn btn-back" onclick="showHome()">Volver</button>
             </div>
         </div>
 
-        <!-- Screen: Admin - Add Questions -->
         <div id="screen-admin" class="screen">
             <div class="container">
-                <div class="join-code-box">
-                    <span class="join-code-label">Codigo de union:</span>
-                    <span class="join-code-value" id="display-join-code">------</span>
-                </div>
-                <p class="game-id-info" id="display-game-id"></p>
-
-                <h3>Agregar Pregunta</h3>
-                <form id="question-form">
-                    <div class="form-group">
-                        <label for="question-text">Pregunta</label>
-                        <input type="text" id="question-text" placeholder="Escribe la pregunta" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="options-count">Numero de opciones</label>
-                        <select id="options-count" class="select-input">
-                            <option value="2">2 opciones</option>
-                            <option value="3">3 opciones</option>
-                            <option value="4" selected>4 opciones</option>
-                            <option value="5">5 opciones</option>
-                            <option value="6">6 opciones</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Opciones de respuesta</label>
-                        <div class="options-grid" id="options-grid"></div>
-                    </div>
-                   <div class="join-code-search">
-                        <input type="text" id="browser-join-code" placeholder="Código de juego" maxlength="6">
-                        <button class="btn btn-primary btn-small" onclick="searchRankingByCode()">Buscar</button>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Anadir Pregunta</button>
-                </form>
-
-                <h3>Preguntas agregadas</h3>
-                <div id="questions-list">
-                    <p class="empty-state">No hay preguntas aun. Agrega la primera.</p>
+                <h2>Panel de Administración del Juego</h2>
+                <div class="game-info-box">
+                    <h3 id="display-game-id">ID: -</h3>
+                    <div class="join-code-badge">Código de acceso: <span id="display-join-code">-</span></div>
                 </div>
 
-                <button class="btn btn-secondary" onclick="showRankingAdmin()">Ver Ranking</button>
+                <div class="admin-grid">
+                    <div class="admin-left">
+                        <h3>Agregar Pregunta</h3>
+                        <form id="question-form">
+                            <div class="form-group">
+                                <label for="question-text">Enunciado de la pregunta</label>
+                                <input type="text" id="question-text" placeholder="¿Cuál es la capital de Francia?" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="options-count">Número de opciones</label>
+                                <select id="options-count">
+                                    <option value="2">2 opciones (Verdadero/Falso)</option>
+                                    <option value="3">3 opciones</option>
+                                    <option value="4" selected>4 opciones</option>
+                                </select>
+                            </div>
+                            <div id="options-grid" class="options-grid"></div>
+                            <div class="form-group">
+                                <label for="correct-option">Opción Correcta</label>
+                                <select id="correct-option"></select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Agregar Pregunta</button>
+                        </form>
+                    </div>
+
+                    <div class="admin-right">
+                        <h3>Preguntas Actuales</h3>
+                        <div id="questions-list" class="questions-list"></div>
+                        <div style="margin-top:20px; display:flex; gap:10px;">
+                            <button class="btn btn-secondary" onclick="showRankingAdmin()">Ver Clasificación en Vivo</button>
+                            <button class="btn btn-back" onclick="showHome()">Terminar y Salir</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Screen: Game Browser -->
         <div id="screen-browser" class="screen">
             <div class="container">
-                <h2>Unirse a Juego</h2>
-
-                <div class="join-by-code-section">
-                    <h3>Ranking en Vivo</h3>
-                    <div class="join-code-search">
-                        <input type="text" id="browser-section" placeholder="Codigo de juego" maxlength="6">
-                        <button class="btn btn-primary btn-small" onclick="searchRankingByCode()">Buscar</button>
-                    </div>
-                    <div id="browser-ranking-result" class="hidden">
-                        <div class="live-info" id="browser-ranking-info">Actualizando cada 3 segundos...</div>
-                        <div id="browser-game-info" class="live-game-info"></div>
-                        <table>
-                            <thead>
-                                <tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>
-                            </thead>
-                            <tbody id="browser-ranking-body"></tbody>
-                        </table>
-                    </div>
+                <h2>Ver Clasificación por Código</h2>
+                <div class="join-code-search">
+                    <input type="text" id="browser-join-code" placeholder="Código de juego" maxlength="6">
+                    <button class="btn btn-primary btn-small" onclick="searchRankingByCode()">Buscar</button>
+                </div>
+                <div id="browser-ranking-result" class="browser-ranking-result hidden" style="display:none; margin-top:15px;">
+                    <h3 id="browser-game-info">Juego: </h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Jugador</th>
+                                <th>Puntos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="browser-ranking-body"></tbody>
+                    </table>
                 </div>
 
-                <hr class="section-divider">
+                <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
 
-                <h3>Buscar Juegos</h3>
+                <h2>Lista de Juegos Creados (Clic para unirse)</h2>
                 <div class="browser-filters">
-                    <input type="text" id="search-title" placeholder="Buscar por titulo">
-                    <input type="text" id="search-author" placeholder="Buscar por autor">
+                    <input type="text" id="search-title" placeholder="Buscar por título">
+                    <input type="text" id="search-author" placeholder="Buscar por código de juego...">
                     <button class="btn btn-primary btn-small" onclick="searchGames()">Filtrar</button>
                 </div>
                 <div id="game-list" class="game-list"></div>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn btn-back" style="width: 200px;" onclick="showHome()">Volver al menú</button>
+                </div>
             </div>
         </div>
 
-        <!-- Screen: Play -->
         <div id="screen-play" class="screen">
-            <div class="container">
+            <div class="container-play">
                 <div class="progress-bar-container">
                     <div class="progress-bar" id="progress-bar"></div>
                 </div>
@@ -174,10 +171,9 @@
             </div>
         </div>
 
-        <!-- Screen: Ranking -->
         <div id="screen-ranking" class="screen">
             <div class="container">
-                <h2>Clasificacion</h2>
+                <h2>Clasificación</h2>
                 <table id="ranking-table">
                     <thead>
                         <tr>
@@ -188,13 +184,13 @@
                     </thead>
                     <tbody id="ranking-body"></tbody>
                 </table>
-                <p id="ranking-empty" class="empty-state hidden">Aun no hay respuestas.</p>
+                <p id="ranking-empty" class="empty-state hidden">Aún no hay respuestas.</p>
                 <button class="btn btn-back" onclick="showHome()">Volver al inicio</button>
             </div>
         </div>
     </div>
 
     <div id="js-debug" style="position:fixed;bottom:0;left:0;right:0;background:#333;color:#0f0;padding:8px;font-size:12px;font-family:monospace;z-index:9999;max-height:120px;overflow:auto;display:none;"></div>
-    <script src="js/script.js?v=9"></script>
+    <script src="js/script.js?v=11"></script>
 </body>
 </html>
