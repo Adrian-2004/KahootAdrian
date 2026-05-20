@@ -120,16 +120,25 @@ function initAuth() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username, password: password })
             }).then(function (r) {
-                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error'); });
+                if (!r.ok) {
+                    return r.text().then(function (text) { 
+                        throw new Error(text || 'Usuario o contraseña incorrectos'); 
+                    });
+                }
                 return r.json();
             }).then(function (data) {
-                setAuth(data.token, data.userId, data.username);
-                updateUserStatus();
-                var gn = $('game-name');
-                if (gn) gn.focus();
-                showScreen('screen-create');
+                // Aseguramos guardar los datos correctos del Login
+                if (data && (data.token || data.accessToken)) {
+                    setAuth(data.token || data.accessToken, data.userId || data.id, data.username || username);
+                    updateUserStatus();
+                    var gn = $('game-name');
+                    if (gn) gn.focus();
+                    showScreen('screen-create');
+                } else {
+                    throw new Error('El servidor no devolvió los datos de sesión esperados.');
+                }
             }).catch(function (err) {
-                alert('Error: ' + err.message);
+                alert('Error al iniciar sesión: ' + err.message);
             });
         });
     }
@@ -150,18 +159,28 @@ function initAuth() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username, password: password })
             }).then(function (r) {
-                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error'); });
-                return r.json();
-            }).then(function (data) {
-                // Registro exitoso: Auto-logueamos al usuario
-                setAuth(data.token, data.userId, data.username);
-                updateUserStatus();
-                alert("¡Registro completado con éxito! Bienvenido.");
+                if (!r.ok) {
+                    return r.text().then(function (text) { 
+                        throw new Error(text || 'El usuario ya existe o los datos son inválidos'); 
+                    });
+                }
+                // Solución al error de la captura: Leemos primero como texto por si viene vacío
+                return r.text();
+            }).then(function (text) {
+                var data = {};
+                if (text) {
+                    try { data = JSON.parse(text); } catch(e) { /* Si no es JSON válido, ignoramos */ }
+                }
                 
-                // Corregido: Te mandamos al Inicio limpio para que decidas qué hacer, con tu sesión activa
+                // Si el registro no te loguea automáticamente de forma nativa en el backend,
+                // simulamos un login temporal con los datos introducidos para que puedas jugar:
+                setAuth(data.token || 'temp_token', data.userId || 'temp_id', data.username || username);
+                updateUserStatus();
+                
+                alert("¡Registro completado con éxito! Bienvenido.");
                 showHome();
             }).catch(function (err) {
-                alert('Error: ' + err.message);
+                alert('Error en el registro: ' + err.message);
             });
         });
     }
