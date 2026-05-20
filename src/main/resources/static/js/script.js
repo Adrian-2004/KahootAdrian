@@ -127,13 +127,18 @@ function initAuth() {
                 }
                 return r.json();
             }).then(function (data) {
-                // Aseguramos guardar los datos correctos del Login
                 if (data && (data.token || data.accessToken)) {
                     setAuth(data.token || data.accessToken, data.userId || data.id, data.username || username);
                     updateUserStatus();
+                    
+                    // CORRECCIÓN AQUÍ: Forzamos a mostrar la pantalla de creación real al loguearse con éxito
+                    var createScreen = $('screen-create') || $('create-section');
+                    if (createScreen) {
+                        showScreen(createScreen.id);
+                        createScreen.style.display = 'block'; 
+                    }
                     var gn = $('game-name');
                     if (gn) gn.focus();
-                    showScreen('screen-create');
                 } else {
                     throw new Error('El servidor no devolvió los datos de sesión esperados.');
                 }
@@ -164,19 +169,12 @@ function initAuth() {
                         throw new Error(text || 'El usuario ya existe o los datos son inválidos'); 
                     });
                 }
-                // Solución al error de la captura: Leemos primero como texto por si viene vacío
                 return r.text();
             }).then(function (text) {
                 var data = {};
-                if (text) {
-                    try { data = JSON.parse(text); } catch(e) { /* Si no es JSON válido, ignoramos */ }
-                }
-                
-                // Si el registro no te loguea automáticamente de forma nativa en el backend,
-                // simulamos un login temporal con los datos introducidos para que puedas jugar:
+                if (text) { try { data = JSON.parse(text); } catch(e) {} }
                 setAuth(data.token || 'temp_token', data.userId || 'temp_id', data.username || username);
                 updateUserStatus();
-                
                 alert("¡Registro completado con éxito! Bienvenido.");
                 showHome();
             }).catch(function (err) {
@@ -345,13 +343,13 @@ function showGameBrowser() {
     loadGames(); 
 }
 
-function loadGames(name, author) {
+function loadGames(name, code) {
     var container = $('game-list');
     if (!container) return;
     var url = API_BASE + '/api/games';
     var params = [];
     if (name) params.push('name=' + encodeURIComponent(name));
-    if (author) params.push('author=' + encodeURIComponent(author));
+    if (code) params.push('code=' + encodeURIComponent(code)); // Cambiado de author a code
     if (params.length) url += '?' + params.join('&');
 
     fetch(url)
@@ -360,16 +358,23 @@ function loadGames(name, author) {
             return res.json();
         })
         .then(function (games) {
+            // Si el usuario puso un código, filtramos en el cliente por si el backend no procesa el query del código directamente
+            if (code) {
+                games = games.filter(function(g) {
+                    return g.joinCode && g.joinCode.toUpperCase().includes(code.toUpperCase());
+                });
+            }
+
             if (games.length === 0) {
-                container.innerHTML = '<p class="empty-state">No se encontraron juegos.</p>';
+                container.innerHTML = '<p class="empty-state">No se encontraron juegos con esos criterios.</p>';
                 return;
             }
             var html = '';
             games.forEach(function (g) {
                 html += '<div class="game-card" data-gameid="' + g.id + '" data-gamename="' + escapeAttr(g.name) + '">' +
                     '<div class="game-card-name">' + escapeHtml(g.name) + '</div>' +
-                    '<div class="game-card-author">Por ' + escapeHtml(g.authorUsername || 'anónimo') +
-                    ' | Código: ' + g.joinCode + '</div>' +
+                    '<div class="game-card-author-code" style="color: #ffc107; font-weight: bold; margin: 5px 0;">CÓDIGO: ' + g.joinCode + '</div>' +
+                    '<div class="game-card-author">Creado por: ' + escapeHtml(g.authorUsername || 'anónimo') + '</div>' +
                     '<div class="game-card-questions">' + (g.questions ? g.questions.length : 0) + ' preguntas</div>' +
                     '</div>';
             });
@@ -387,8 +392,9 @@ function loadGames(name, author) {
 
 function searchGames() {
     var name = $('search-title') ? $('search-title').value.trim() : '';
-    var author = $('search-author') ? $('search-author').value.trim() : '';
-    loadGames(name || null, author || null);
+    // Ahora leemos el segundo input (aunque en tu HTML se llame search-author) para usarlo como buscador de código
+    var code = $('search-author') ? $('search-author').value.trim() : '';
+    loadGames(name || null, code || null);
 }
 
 // --- Join Game from browser ---
@@ -432,39 +438,66 @@ function joinGameById(gameId, playerName) {
 
 // --- Join by code ---
 function searchRankingByCode() {
-    var joinCode = $('browser-join-code') ? $('browser-join-code').value.trim().toUpperCase() : '';
-    if (!joinCode) return;
+    var joinCodeInput = $('browser-join-code');
+    var joinCode = joinCodeInput ? joinCodeInput.value.trim().toUpperCase() : '';
+    
+    if (!joinCode) {
+        alert('Por favor, introduce un código de juego.');
+        return;
+    }
+
+    // Alerta de depuración para saber que el botón SÍ responde al hacer clic
+    console.log('Buscando ranking para el código:', joinCode);
 
     fetch(API_BASE + '/api/games')
         .then(function (res) {
-            if (!res.ok) throw new Error('Error');
+            if (!res.ok) throw new Error('No se pudo conectar con el servidor.');
             return res.json();
         })
         .then(function (games) {
             var game = null;
             for (var i = 0; i < games.length; i++) {
-                if (games[i].joinCode === joinCode) { game = games[i]; break; }
+                if (games[i].joinCode && games[i].joinCode.toUpperCase() === joinCode) { 
+                    game = games[i]; 
+                    break; 
+                }
             }
+            
             if (!game) {
-                alert('Código de juego inválido');
+                alert('Código de juego inválido o no encontrado en el servidor.');
                 return;
             }
+
+            // Si encuentra el juego, actualizamos el título
             var gi = $('browser-game-info');
             if (gi) gi.textContent = 'Juego: ' + game.name;
+            
+            // FORZADO DE VISUALIZACIÓN: Mostramos el contenedor del ranking eliminando 'hidden' y forzando display block
             var br = $('browser-ranking-result');
-            if (br) br.classList.remove('hidden');
+            if (br) {
+                br.classList.remove('hidden');
+                br.style.display = 'block'; 
+            }
+            
+            // Cargamos los datos del ranking por primera vez
             refreshRankingByCode(game.id);
+            
+            // Activamos el bucle en vivo cada 3 segundos
             stopLiveRefresh();
-            state.liveInterval = setInterval(function () { refreshRankingByCode(game.id); }, 3000);
+            state.liveInterval = setInterval(function () { 
+                refreshRankingByCode(game.id); 
+            }, 3000);
+            
         })
         .catch(function (err) {
-            alert('Error: ' + err.message);
+            alert('Error al buscar el ranking: ' + err.message);
         });
 }
 
 function refreshRankingByCode(gameId) {
     var tbody = $('browser-ranking-body');
     if (!tbody) return;
+    
     fetch(API_BASE + '/api/games/' + gameId + '/ranking')
         .then(function (res) {
             if (!res.ok) return null;
@@ -473,13 +506,23 @@ function refreshRankingByCode(gameId) {
         .then(function (ranking) {
             if (!ranking) return;
             tbody.innerHTML = '';
+            
+            if (ranking.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#aaa;">Nadie ha respondido aún a este juego.</td></tr>';
+                return;
+            }
+            
             ranking.forEach(function (entry, index) {
                 var tr = document.createElement('tr');
-                tr.innerHTML = '<td>' + (index + 1) + '</td><td>' + escapeHtml(entry.playerName) + '</td><td>' + entry.score + '</td>';
+                tr.innerHTML = '<td style="font-weight:bold; color:#ffc107;">' + (index + 1) + '</td>' +
+                               '<td style="color:#fff;">' + escapeHtml(entry.playerName) + '</td>' +
+                               '<td style="font-weight:bold; color:#00e676;">' + entry.score + ' pts</td>';
                 tbody.appendChild(tr);
             });
         })
-        .catch(function () { });
+        .catch(function (err) { 
+            console.error("Error en refresco automático:", err);
+        });
 }
 
 function stopLiveRefresh() {
