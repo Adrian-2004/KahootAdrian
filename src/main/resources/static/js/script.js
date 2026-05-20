@@ -71,14 +71,15 @@ function showLogin() { showScreen('screen-login'); }
 function showRegister() { showScreen('screen-register'); }
 
 function handleCreateGame() {
-    alert('handleCreateGame called');
-    if (!isLoggedIn()) {
-        showLogin();
-    } else {
-        var f = $('create-form');
-        if (f) f.reset();
-        showScreen('screen-create');
+    // Comprueba si el usuario está logueado (si guardas el usuario en localStorage)
+    const user = localStorage.getItem('user');
+    if (!user) {
+        alert("Debes iniciar sesión para crear un juego.");
+        return;
     }
+    // Oculta la pantalla principal y muestra la de creación
+    document.getElementById('home-section').style.display = 'none';
+    document.getElementById('create-section').style.display = 'block';
 }
 
 function showRankingAdmin() {
@@ -292,14 +293,11 @@ function deleteQuestion(questionId) {
 
 // --- Game Browser ---
 function showGameBrowser() {
-    showScreen('screen-browser');
-    var jc = $('browser-join-code');
-    if (jc) jc.value = '';
-    var br = $('browser-ranking-result');
-    if (br) br.classList.add('hidden');
-    var gl = $('game-list');
-    if (gl) gl.innerHTML = '<p class="empty-state">Cargando juegos...</p>';
-    loadGames(null, null);
+    // Oculta la pantalla principal y muestra la sección de buscar juegos
+    document.getElementById('home-section').style.display = 'none';
+    document.getElementById('browser-section').style.display = 'block';
+    // Llama a la función que ya tienes para listar los juegos
+    loadGames(); 
 }
 
 function loadGames(name, author) {

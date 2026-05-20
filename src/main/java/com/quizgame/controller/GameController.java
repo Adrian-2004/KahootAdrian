@@ -37,21 +37,29 @@ public class GameController {
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(game));
     }
 
-    @GetMapping
-    public ResponseEntity<List<GameResponse>> getAllGames(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String author) {
-        List<Game> games;
-        if ((name != null && !name.isBlank()) || (author != null && !author.isBlank())) {
-            games = gameService.searchGames(name, author);
-        } else {
-            games = gameService.getAllGames();
-        }
-        List<GameResponse> responses = games.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(responses);
+   @GetMapping
+public ResponseEntity<java.util.List<Game>> getAllGames(
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String author) {
+    
+    // Obtenemos todos los juegos usando tu lógica original
+    java.util.List<Game> games = gameService.getAllGames();
+    
+    // Filtramos en memoria para no alterar la estructura del programa
+    if (name != null && !name.isEmpty()) {
+        games = games.stream()
+                .filter(g -> g.getName() != null && g.getName().toLowerCase().contains(name.toLowerCase()))
+                .collect(java.util.stream.Collectors.toList());
     }
+    
+    if (author != null && !author.isEmpty()) {
+        games = games.stream()
+                .filter(g -> g.getAuthorUsername() != null && g.getAuthorUsername().toLowerCase().contains(author.toLowerCase()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    return ResponseEntity.ok(games);
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<GameResponse> getGameById(@PathVariable String id) {

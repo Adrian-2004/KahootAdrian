@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+showGame<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -14,7 +14,7 @@
             <div class="container">
                 <h1 class="title">Kahoot Quiz</h1>
                 <p class="subtitle">Juego de preguntas y respuestas</p>
-                <div class="home-buttons">
+                <div class="home-section">
                     <button class="btn btn-primary" onclick="handleCreateGame()">Crear Juego</button>
                     <button class="btn btn-secondary" onclick="showGameBrowser()">Unirse a Juego</button>
                 </div>
@@ -70,7 +70,7 @@
         <div id="screen-create" class="screen">
             <div class="container">
                 <h2>Crear Nuevo Juego</h2>
-                <form id="create-form">
+                <form id="create-section">
                     <div class="form-group">
                         <label for="game-name">Nombre del juego</label>
                         <input type="text" id="game-name" placeholder="Ej: Historia Universal" required>
@@ -134,7 +134,7 @@
                 <div class="join-by-code-section">
                     <h3>Ranking en Vivo</h3>
                     <div class="join-code-search">
-                        <input type="text" id="browser-join-code" placeholder="Codigo de juego" maxlength="6">
+                        <input type="text" id="browser-section" placeholder="Codigo de juego" maxlength="6">
                         <button class="btn btn-primary btn-small" onclick="searchRankingByCode()">Buscar</button>
                     </div>
                     <div id="browser-ranking-result" class="hidden">
