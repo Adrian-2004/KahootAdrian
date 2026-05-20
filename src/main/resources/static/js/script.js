@@ -42,16 +42,17 @@ function showScreen(screenId) {
 }
 
 function showHome() {
-    stopLiveRefresh();
-    state.currentGameId = null;
-    state.currentPlayerId = null;
-    state.currentPlayerName = null;
-    state.currentQuestions = [];
-    state.currentQuestionIndex = 0;
-    updateUserStatus();
-    showScreen('screen-home');
+    // Escondemos todas las secciones posibles de autenticación
+    const loginScreen = document.getElementById('screen-login') || document.getElementById('login-section');
+    const registerScreen = document.getElementById('screen-register') || document.getElementById('register-section') || document.getElementById('screen-signup');
+    
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (registerScreen) registerScreen.style.display = 'none';
+    
+    // Mostramos la pantalla principal de la web
+    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
+    if (homeScreen) homeScreen.style.display = 'block';
 }
-
 function updateUserStatus() {
     var el = $('user-status');
     if (!el) return;
@@ -67,8 +68,31 @@ function logout() {
     showHome();
 }
 
-function showLogin() { showScreen('screen-login'); }
-function showRegister() { showScreen('screen-register'); }
+function showLogin() {
+    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
+    const registerScreen = document.getElementById('screen-register') || document.getElementById('register-section') || document.getElementById('screen-signup');
+    
+    if (homeScreen) homeScreen.style.display = 'none';
+    if (registerScreen) registerScreen.style.display = 'none';
+    
+    const loginScreen = document.getElementById('screen-login') || document.getElementById('login-section');
+    if (loginScreen) loginScreen.style.display = 'block';
+}
+function showRegister() {
+    const homeScreen = document.getElementById('screen-home') || document.getElementById('home-section');
+    const loginScreen = document.getElementById('screen-login') || document.getElementById('login-section');
+    
+    if (homeScreen) homeScreen.style.display = 'none';
+    if (loginScreen) loginScreen.style.display = 'none';
+    
+    // Buscamos la pantalla de registro por sus posibles nombres
+    const registerScreen = document.getElementById('screen-register') || document.getElementById('register-section') || document.getElementById('screen-signup');
+    if (registerScreen) {
+        registerScreen.style.display = 'block';
+    } else {
+        console.error("No se encontró el ID de la pantalla de registro.");
+    }
+}
 
 function handleCreateGame() {
     // 1. Intentamos buscar si hay un token o usuario guardado en el navegador
@@ -308,10 +332,27 @@ function deleteQuestion(questionId) {
 
 // --- Game Browser ---
 function showGameBrowser() {
-    // Oculta la pantalla principal y muestra la sección de buscar juegos
-    document.getElementById('home-section').style.display = 'none';
-    document.getElementById('browser-section').style.display = 'block';
-    // Llama a la función que ya tienes para listar los juegos
+    // 1. Ocultamos la pantalla de inicio (probando tus dos posibles nombres)
+    const home = document.getElementById('home-section') || document.getElementById('screen-home');
+    if (home) home.style.display = 'none';
+
+    // 2. Buscamos la pantalla del buscador de juegos intentando varios IDs comunes
+    const browser = document.getElementById('browser-section') 
+                  || document.getElementById('screen-browser') 
+                  || document.getElementById('games-section')
+                  || document.getElementById('game-browser');
+
+    if (browser) {
+        // Si encuentra alguno de los 4, lo muestra
+        browser.style.display = 'block';
+    } else {
+        // Si sigue sin encontrarlo, nos avisará con un mensaje elegante en vez de romper la consola
+        console.error("Error: No se encontró el ID de la sección del buscador en el HTML.");
+        alert("¡Ups! No se encuentra la sección de buscar juegos en el diseño HTML.");
+        return; 
+    }
+
+    // 3. Carga la lista de juegos
     loadGames(); 
 }
 
